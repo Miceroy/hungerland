@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.9" tiledversion="1.9.2" orientation="orthogonal" renderorder="right-down" width="200" height="12" tilewidth="96" tileheight="96" infinite="0" nextlayerid="4" nextobjectid="1">
+ <tileset firstgid="1" name="tileset" tilewidth="96" tileheight="96" tilecount="15" columns="5">
+  <image source="images/platform.png" width="484" height="290"/>
+ </tileset>
+ <layer id="1" name="Platform" width="200" height="12">
+  <data encoding="base64" compression="zlib">
+  </data>
+ </layer>
+ <layer id="2" name="Foreground" width="200" height="12">
+  <data encoding="base64" compression="zlib">
+  </data>
+ </layer>
+</map>

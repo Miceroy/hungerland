@@ -1,0 +1,150 @@
+body {
+        background-color: #000000;
+        color: #C0C0C0;
+}
+div {
+        background-color: #202020;
+        color: #C0C0C0;
+}
+
+div.header {
+        background-color: #202020;
+        color: #C0C0C0;
+        border-bottom: 1px solid #20E020;
+}
+
+#nav-tree {
+  background-color: #202020;
+  color: #C0C0C0;
+}
+
+#nav-tree-contents {
+  margin: 0px;
+}
+
+#nav-tree .selected a {
+  text-decoration:none;
+  color:#C0C0C0;
+}
+
+div.contents {
+        background-color: #202020;
+        color: #C0C0C0;
+        margin-bottom: 12px;
+        padding: 12px;
+        margin-left: 12px;
+        margin-right: 12px;
+        border-radius: 8px;
+        border: 1px solid #20E020;
+}
+
+
+div.toc {
+        background-color: #202020;
+        border: 1px solid #20E020;
+}
+
+
+th.dirtab {
+        background: #202020;
+}
+
+
+td.memItemLeft, td.memItemRight{
+        background-color: #303030;
+        color: #C0C0C0;
+}
+
+
+a {
+        color: #118E11;
+}
+/*
+a.code {
+        color: #008080;
+}
+*/
+span.lineno {
+    background-color: #202020;
+}
+
+span.lineno a {
+        background-color: #202020;
+}
+
+span.lineno a:hover {
+        background-color: #202020;
+}
+
+
+
+span.keyword {
+	color: #008060
+}
+
+span.keywordtype {
+	color: #008060
+}
+
+span.keywordflow {
+	color: #008060
+}
+
+span.preprocessor {
+	color: #007080
+}
+
+
+
+
+span.comment {
+	color: #008000
+}
+
+span.stringliteral {
+	color: #008000
+}
+
+span.charliteral {
+	color: #008000
+}
+
+
+
+
+
+.memtitle {
+        background-image: none;
+        background-color: #303030;
+}
+
+.paramname {
+	color: #C0C0C0;
+	white-space: nowrap;
+}
+
+
+.memproto, dl.reflist dt {
+        color: #118E11;
+        text-shadow: 0px 1px 1px rgba(0, 0, 0, 0.9);
+        background-color: #202020;
+}
+
+.memdoc, dl.reflist dd {
+        background-color: #303030;
+        border-top-width: 0;
+}
+
+.memtemplate {
+	font-size: 80%;
+	color: #118E11;
+	font-weight: normal;
+	margin-left: 9px;
+}
+
+
+
+.directory tr.even {
+        background-color: #202020;
+}
+

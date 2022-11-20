@@ -1,0 +1,79 @@
+/home/mikko/repos_old/opari/include/AgentImpl.h:367: warning: Member CorrType (typedef) of struct agi_impl::AABBCorrelation is not documented.
+/home/mikko/repos_old/opari/include/AgentImpl.h:368: warning: Member Fract (typedef) of struct agi_impl::AABBCorrelation is not documented.
+/home/mikko/repos_old/opari/include/AgentImpl.h:370: warning: Member similarity (variable) of struct agi_impl::AABBCorrelation is not documented.
+/home/mikko/repos_old/opari/include/AgentImpl.h:377: warning: Member overlaps (variable) of struct agi_impl::AABBCorrelation is not documented.
+/home/mikko/repos_old/opari/include/AgentImpl.h:378: warning: Member maxOverlaps (variable) of struct agi_impl::AABBCorrelation is not documented.
+/home/mikko/repos_old/opari/include/AgentImpl.h:379: warning: Member overlapArea (variable) of struct agi_impl::AABBCorrelation is not documented.
+/home/mikko/repos_old/opari/include/AgentImpl.h:380: warning: Member underlapArea (variable) of struct agi_impl::AABBCorrelation is not documented.
+/home/mikko/repos_old/opari/include/AgentImpl.h:381: warning: Member maxOverlapArea (variable) of struct agi_impl::AABBCorrelation is not documented.
+/home/mikko/repos_old/opari/include/AgentImpl.h:536: warning: Member pos (variable) of struct agi_impl::RelationInfo is not documented.
+/home/mikko/repos_old/opari/include/AgentImpl.h:537: warning: Member correlations (variable) of struct agi_impl::RelationInfo is not documented.
+/home/mikko/repos_old/opari/include/Math.h:43: warning: Member first (variable) of struct agi_types::Dim is not documented.
+/home/mikko/repos_old/opari/include/Math.h:44: warning: Member second (variable) of struct agi_types::Dim is not documented.
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:24: warning: Member state (variable) of struct dp::ComputeNode is not documented.
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:25: warning: Member action (variable) of struct dp::ComputeNode is not documented.
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:26: warning: Member data (variable) of struct dp::ComputeNode is not documented.
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:27: warning: Member prev (variable) of struct dp::ComputeNode is not documented.
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:65: warning: Member open (variable) of struct dp::ComputeResult is not documented.
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:66: warning: Member closed (variable) of struct dp::ComputeResult is not documented.
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:67: warning: Member goaled (variable) of struct dp::ComputeResult is not documented.
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:76: warning: Member IsGoal (typedef) of struct dp::DynamicProgram is not documented.
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:77: warning: Member IsLessValue (typedef) of struct dp::DynamicProgram is not documented.
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:78: warning: Member IsSameResult (typedef) of struct dp::DynamicProgram is not documented.
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:79: warning: Member NewNode (typedef) of struct dp::DynamicProgram is not documented.
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:80: warning: Member StateVisitFunc (typedef) of struct dp::DynamicProgram is not documented.
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:81: warning: Member TraceFunc (typedef) of struct dp::DynamicProgram is not documented.
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:136: warning: The following parameter of dp::DynamicProgram::run(ComputeResult< State, Node > &canditates, TraceFunc abort, StateVisitFunc visitFunc) const is not documented:
+  parameter 'visitFunc'
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:113: warning: argument 'nodeClosed' of command @param is not found in the argument list of dp::DynamicProgram< StateMachine, Node, State, ActionId >::visit(const std::vector< State > &states, TraceFunc abort, VisitFunc visitFunc) const
+/home/mikko/repos_old/opari/include/DynamicProgramming.h:119: warning: The following parameter of dp::DynamicProgram::visit(const std::vector< State > &states, TraceFunc abort, VisitFunc visitFunc) const is not documented:
+  parameter 'visitFunc'
+/home/mikko/repos_old/opari/include/Optimizer.h:20: warning: Member IsGoalState (typedef) of struct dp::OptimizerProgram is not documented.
+/home/mikko/repos_old/opari/include/Optimizer.h:21: warning: Member QValueFunc (typedef) of struct dp::OptimizerProgram is not documented.
+/home/mikko/repos_old/opari/include/Optimizer.h:22: warning: Member HValueFunc (typedef) of struct dp::OptimizerProgram is not documented.
+/home/mikko/repos_old/opari/include/Optimizer.h:23: warning: Member ModeFunc (typedef) of struct dp::OptimizerProgram is not documented.
+/home/mikko/repos_old/opari/include/Optimizer.h:24: warning: Member NodePtr (typedef) of struct dp::OptimizerProgram is not documented.
+/home/mikko/repos_old/opari/include/Optimizer.h:25: warning: Member TraceFunc (typedef) of struct dp::OptimizerProgram is not documented.
+/home/mikko/repos_old/opari/include/Optimizer.h:90: warning: The following parameter of dp::OptimizerProgram::optimize(ComputeResult< State, Node > &solution, TraceFunc trace, std::function< void(size_t, const State &)> visitFunc) const is not documented:
+  parameter 'visitFunc'
+/home/mikko/repos_old/opari/include/Optimizer.h:65: warning: argument 's0' from the argument list of dp::OptimizerProgram::optimize has multiple @param documentation sections
+/home/mikko/repos_old/opari/include/Optimizer.h:65: warning: argument 'trace' from the argument list of dp::OptimizerProgram::optimize has multiple @param documentation sections
+/home/mikko/repos_old/opari/include/Optimizer.h:71: warning: argument 's0' of command @param is not found in the argument list of dp::OptimizerProgram< Data, State, ActionId, Node, StateMachine >::search(const std::vector< State > &states, TraceFunc trace, std::function< void(size_t, const State &)> visitFunc) const
+/home/mikko/repos_old/opari/include/Optimizer.h:76: warning: The following parameters of dp::OptimizerProgram::search(const std::vector< State > &states, TraceFunc trace, std::function< void(size_t, const State &)> visitFunc) const are not documented:
+  parameter 'states'
+  parameter 'visitFunc'
+/home/mikko/repos_old/opari/include/Entity.h:133: warning: Member transformId (variable) of struct ecs::Entity is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:134: warning: Member appearanceId (variable) of struct ecs::Entity is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:135: warning: Member stateId (variable) of struct ecs::Entity is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:136: warning: Member behaviourId (variable) of struct ecs::Entity is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:153: warning: Member components (variable) of struct ecs::Scene is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:154: warning: Member entities (variable) of struct ecs::Scene is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:28: warning: Member parentTransformId (variable) of struct ecs::components::Transform is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:29: warning: Member position (variable) of struct ecs::components::Transform is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:30: warning: Member size (variable) of struct ecs::components::Transform is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:79: warning: Member sprites (variable) of struct ecs::components::Appearance is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:80: warning: Member positions (variable) of struct ecs::components::Appearance is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:100: warning: Member stateId (variable) of struct ecs::components::Instance is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:107: warning: Member programId (variable) of struct ecs::components::Behaviour is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:115: warning: Member transforms (variable) of struct ecs::components::Components is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:116: warning: Member appearances (variable) of struct ecs::components::Components is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:117: warning: Member states (variable) of struct ecs::components::Components is not documented.
+/home/mikko/repos_old/opari/include/Entity.h:118: warning: Member behaviours (variable) of struct ecs::components::Components is not documented.
+/home/mikko/repos_old/opari/include/Solver.h:16: warning: Member map (variable) of struct solver::ProblemImpl is not documented.
+/home/mikko/repos_old/opari/include/Solver.h:17: warning: Member state (variable) of struct solver::ProblemImpl is not documented.
+/home/mikko/repos_old/opari/include/Solver.h:18: warning: Member reset (variable) of struct solver::ProblemImpl is not documented.
+/home/mikko/repos_old/opari/include/Solver.h:31: warning: Member goalState (variable) of struct solver::GoalBasedProblemImpl is not documented.
+/home/mikko/repos_old/opari/include/Solver.h:33: warning: Member isGoalReached (variable) of struct solver::GoalBasedProblemImpl is not documented.
+/home/mikko/repos_old/opari/include/Solver.h:16: warning: Member map (variable) of struct solver::ProblemImpl is not documented.
+/home/mikko/repos_old/opari/include/Solver.h:17: warning: Member state (variable) of struct solver::ProblemImpl is not documented.
+/home/mikko/repos_old/opari/include/Solver.h:18: warning: Member reset (variable) of struct solver::ProblemImpl is not documented.
+/home/mikko/repos_old/opari/include/Solver.h:48: warning: Member problem (variable) of struct solver::SolverImpl is not documented.
+/home/mikko/repos_old/opari/include/Solver.h:49: warning: Member agent (variable) of struct solver::SolverImpl is not documented.
+/home/mikko/repos_old/opari/include/Solver.h:50: warning: Member env (variable) of struct solver::SolverImpl is not documented.
+/home/mikko/repos_old/opari/include/StateMachine.h:22: warning: Member isEnds (variable) of struct stm::Constraints is not documented.
+/home/mikko/repos_old/opari/include/StateMachine.h:23: warning: Member isLegalStates (variable) of struct stm::Constraints is not documented.
+/home/mikko/repos_old/opari/include/StateMachine.h:24: warning: Member isLegalActions (variable) of struct stm::Constraints is not documented.
+/home/mikko/repos_old/opari/include/StateMachine.h:25: warning: Member postConditions (variable) of struct stm::Constraints is not documented.
+/home/mikko/repos_old/opari/include/StateMachine.h:88: warning: Member system (variable) of struct stm::StateMachine is not documented.
+/home/mikko/repos_old/opari/include/StateMachine.h:89: warning: Member functor (variable) of struct stm::StateMachine is not documented.
+/home/mikko/repos_old/opari/include/StateMachine.h:90: warning: Member cond (variable) of struct stm::StateMachine is not documented.
