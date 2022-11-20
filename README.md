@@ -3,6 +3,9 @@
 Hungerland Game Engine is a simple 2d game engine made with modern C++.
 
 # Cloning repository
+```
+git clone https://github.com/Miceroy/hungerland.git
+```
 
 # Compiling
 
@@ -13,7 +16,9 @@ cmake ../
 cmake --build .
 ```
 
-# Contributors
+# Author
+
+Mikko Romppainen
 
 # License
-[MIT License](./LICENCE)
+[MIT License](./LICENSE)
