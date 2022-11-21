@@ -20,7 +20,7 @@ file(GLOB_RECURSE ENGINE_INL_FILES "src/*.inl")
 add_library(hungerland ${ENGINE_INC_FILES} ${ENGINE_SRC_FILES} ${ENGINE_INL_FILES})
 target_link_libraries(hungerland PUBLIC mikroplot glm tmxlite)
 target_include_directories(hungerland PUBLIC "include")
-target_include_directories(hungerland PUBLIC "../ext/mikroplot-main/ext/glfw-3.3.6/deps")
+target_include_directories(hungerland PUBLIC "ext/mikroplot-main/ext/glfw-3.3.6/deps")
 target_include_directories(hungerland PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include/hungerland>
