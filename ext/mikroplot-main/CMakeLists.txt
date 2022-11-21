@@ -50,7 +50,7 @@ option(GLFW_BUILD_EXAMPLES "" OFF)
 option(GLFW_BUILD_TESTS "" OFF)
 option(GLFW_BUILD_DOCS "" OFF)
 option(GLFW_INSTALL "" OFF)
-# add_subdirectory("./ext/glfw-3.3.6")
+add_subdirectory("./ext/glfw-3.3.6")
 # Specify include directories
 include_directories("ext/glfw-3.3.6/include")
 include_directories("ext/stb-master")
@@ -66,8 +66,8 @@ set(GLAD_GL "${GLFW_SOURCE_DIR}/deps/glad/gl.h" "${GLFW_SOURCE_DIR}/deps/glad_gl
 project (mikroplot)
 #option(MIKROPLOT_BUILD_EXAMPLES "Build MikRoPlot examples" ON )
 
-file(GLOB_RECURSE MIKROPLOT_INC_FILES "./include/mikroplot/*.h")
-file(GLOB_RECURSE MIKROPLOT_SRC_FILES "./src/*.cpp")
+file(GLOB_RECURSE MIKROPLOT_INC_FILES "include/mikroplot/*.h")
+file(GLOB_RECURSE MIKROPLOT_SRC_FILES "src/*.cpp")
 
 add_library(mikroplot "ext/miniaudio/miniaudio.h" ${MIKROPLOT_SRC_FILES} ${MIKROPLOT_INC_FILES} ${GLAD_GL})
 target_link_libraries(mikroplot PUBLIC glfw)
