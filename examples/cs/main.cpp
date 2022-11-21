@@ -1,12 +1,15 @@
-#include "./platformer.h"
+//// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= ////
+//// CyberSpace - Design, art: Roope Romppainen, Code: Mikko Romppainen
+////
+////
+//// Copyright (c) 2022 Mikko Romppainen.
+////
+//// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= ////
+#include "../platformer.h"
 
-namespace example {
+namespace cs {
 	/// CONFIG:
-/*	static const size_t	WINDOW_SIZE_X = 1920;
-	static const size_t	WINDOW_SIZE_Y = 1080;
-	static const float	SCALE_X = 48.0f;
-	static const float	SCALE_Y = 48.0f;*/
-	static const std::string GAME_NAME = "Platformer Game";
+	static const std::string GAME_NAME = "Cyber Space";
 	static const std::string GAME_VERSION = "v0.0.1";
 	static const std::string GAME_LONG_NAME = GAME_NAME + " " + GAME_VERSION;
 }
@@ -16,7 +19,7 @@ int main() {
 	using namespace mikroplot;
 	using namespace platformer;
 	using namespace app;
-	using namespace example;
+	using namespace cs;
 	// Create application window and run it.
 	mikroplot::Window window(WINDOW_SIZE_X/2, WINDOW_SIZE_Y/2, "");
 	Functor f;
