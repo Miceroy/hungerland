@@ -37,120 +37,135 @@ source distribution.
 
 namespace pugi
 {
-    class xml_node;
+	class xml_node;
 }
 
 namespace tmx
 {
-    class Map;
-    class TileLayer;
-    class ObjectGroup;
-    class ImageLayer;
-    class LayerGroup;
-    /*!
-    \brief Represents a layer of a tmx format tile map.
-    This is an abstract base class from which all layer
-    types are derived.
-    */
-    class TMXLITE_EXPORT_API Layer
-    {
-    public:
-        using Ptr = std::unique_ptr<Layer>;
+	class Map;
+	class TileLayer;
+	class ObjectGroup;
+	class ImageLayer;
+	class LayerGroup;
+	/*!
+	\brief Represents a layer of a tmx format tile map.
+	This is an abstract base class from which all layer
+	types are derived.
+	*/
+	class TMXLITE_EXPORT_API Layer
+	{
+	public:
+		using Ptr = std::unique_ptr<Layer>;
 
-        Layer() : m_opacity(1.f), m_visible(true) {};
-        virtual ~Layer() = default;
+		Layer() : m_opacity(1.f), m_visible(true) {};
+		virtual ~Layer() = default;
 
-        /*!
-        \brief Layer type as returned by getType()
-        Tile: this layer is a TileLayer type
-        Object: This layer is an ObjectGroup type
-        Image: This layer is an ImageLayer type
-        Group: This layer is a LayerGroup type
-        */
-        enum class Type
-        {
-            Tile,
-            Object,
-            Image,
-            Group
-        };
+		/*!
+		\brief Layer type as returned by getType()
+		Tile: this layer is a TileLayer type
+		Object: This layer is an ObjectGroup type
+		Image: This layer is an ImageLayer type
+		Group: This layer is a LayerGroup type
+		*/
+		enum class Type
+		{
+			Tile,
+			Object,
+			Image,
+			Group
+		};
 
-        /*!
-        \brief Returns a Type value representing the concrete type.
-        Use this when deciding which conrete layer type to use when
-        calling the templated function getLayerAs<T>()
-        */
-        virtual Type getType() const = 0;
+		/*!
+		\brief Returns a Type value representing the concrete type.
+		Use this when deciding which conrete layer type to use when
+		calling the templated function getLayerAs<T>()
+		*/
+		virtual Type getType() const = 0;
 
-        /*!
-        \brief Use this to get a reference to the concrete layer type
-        which this layer points to.
-        Use getType() to return the type value of this layer and determine
-        if the concrete type is TileLayer, ObjectGroup, ImageLayer, or LayerGroup
-        */
-        template <typename T>
-        T& getLayerAs();
-        /*{
-            throw("Not a valid layer type");
-            return *dynamic_cast<T*>(this);
-        }*/
+		/*!
+		\brief Use this to get a reference to the concrete layer type
+		which this layer points to.
+		Use getType() to return the type value of this layer and determine
+		if the concrete type is TileLayer, ObjectGroup, ImageLayer, or LayerGroup
+		*/
+		template <typename T>
+		T& getLayerAs();
+		/*{
+			throw("Not a valid layer type");
+			return *dynamic_cast<T*>(this);
+		}*/
 
-        template <typename T>
-        const T& getLayerAs() const { return getLayerAs<T>(); }
+		template <typename T>
+		const T& getLayerAs() const { return getLayerAs<T>(); }
 
-        /*!
-        \brief Attempts to parse the specific node layer type
-        */
-        virtual void parse(const pugi::xml_node&, Map* = nullptr) = 0;
+		/*!
+		\brief Attempts to parse the specific node layer type
+		*/
+		virtual void parse(const pugi::xml_node&, Map* = nullptr) = 0;
 
-        /*!
-        \brief Returns the name of the layer
-        */
-        const std::string& getName() const { return m_name; }
+		/*!
+		\brief Returns the name of the layer
+		*/
+		const std::string& getName() const { return m_name; }
 
-        /*!
-        \brief Returns the opacity value for the layer
-        */
-        float getOpacity() const { return m_opacity; }
+		/*!
+		\brief Returns the opacity value for the layer
+		*/
+		float getOpacity() const { return m_opacity; }
 
-        /*!
-        \brief Returns whether this layer is visible or not
-        */
-        bool getVisible() const { return m_visible; }
+		/*!
+		\brief Returns whether this layer is visible or not
+		*/
+		bool getVisible() const { return m_visible; }
 
-        /*!
-        \brief Returns the offset from the top left corner
-        of the layer, in pixels
-        */
-        const Vector2i& getOffset() const { return m_offset; }
+		/*!
+		\brief Returns the offset from the top left corner
+		of the layer, in pixels
+		*/
+		const Vector2i& getOffset() const { return m_offset; }
 
-        /*!
-        \brief Returns the size of the layer, in pixels.
-        This will be the same as the map size for fixed size maps.
-        */
-        const Vector2u& getSize() const { return m_size; }
+		/*!
+		\brief Returns the size of the layer, in pixels.
+		This will be the same as the map size for fixed size maps.
+		*/
+		const Vector2u& getSize() const { return m_size; }
 
-        /*!
-        \brief Returns the list of properties of this layer
-        */
-        const std::vector<Property>& getProperties() const { return m_properties; }
 
-    protected:
+		/*!
+		\brief Returns the repaeat value of the layer, in boolean x y .
+		*/
+		const Vector2u& getRepeat() const { return m_repeat; }
 
-        void setName(const std::string& name) { m_name = name; }
-        void setOpacity(float opacity) { m_opacity = opacity; }
-        void setVisible(bool visible) { m_visible = visible; }
-        void setOffset(std::int32_t x, std::int32_t y) { m_offset = Vector2i(x, y); }
-        void setSize(std::uint32_t width, std::uint32_t height) { m_size = Vector2u(width, height); }
-        void addProperty(const pugi::xml_node& node) { m_properties.emplace_back(); m_properties.back().parse(node); }
+		/*!
+		\brief Returns the parallax value of the layer, in boolean x y .
+		*/
+		const Vector2f& getParallax() const { return m_parallax; }
 
-    private:
-        std::string m_name;
-        float m_opacity;
-        bool m_visible;
-        Vector2i m_offset;
-        Vector2u m_size;
+		/*!
+		\brief Returns the list of properties of this layer
+		*/
+		const std::vector<Property>& getProperties() const { return m_properties; }
 
-        std::vector<Property> m_properties;
-    };
+	protected:
+
+		void setName(const std::string& name) { m_name = name; }
+		void setOpacity(float opacity) { m_opacity = opacity; }
+		void setVisible(bool visible) { m_visible = visible; }
+		void setOffset(std::int32_t x, std::int32_t y) { m_offset = Vector2i(x, y); }
+		void setSize(std::uint32_t width, std::uint32_t height) { m_size = Vector2u(width, height); }
+		void setRepeat(std::uint32_t x, std::uint32_t y) { m_repeat = Vector2u(x, y); }
+		void setParallax(float x, float y) { m_parallax = Vector2f(x, y); }
+		void addProperty(const pugi::xml_node& node) { m_properties.emplace_back(); m_properties.back().parse(node); }
+
+	private:
+		std::string m_name;
+		float m_opacity;
+		bool m_visible;
+		Vector2i m_offset;
+		Vector2u m_size;
+		Vector2u m_repeat;
+		Vector2f m_parallax;
+
+		std::vector<Property> m_properties;
+	};
 }

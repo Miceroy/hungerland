@@ -33,8 +33,8 @@ source distribution.
 using namespace tmx;
 
 ImageLayer::ImageLayer(const std::string& workingDir)
-    : m_workingDir      (workingDir),
-    m_hasTransparency   (false)
+	: m_workingDir      (workingDir),
+	m_hasTransparency   (false)
 {
 
 }
@@ -42,51 +42,55 @@ ImageLayer::ImageLayer(const std::string& workingDir)
 //public
 void ImageLayer::parse(const pugi::xml_node& node, Map*)
 {
-    std::string attribName = node.name();
-    if (attribName != "imagelayer")
-    {
-        Logger::log("Node not an image layer, node skipped", Logger::Type::Error);
-        return;
-    }
+	std::string attribName = node.name();
+	if (attribName != "imagelayer")
+	{
+		Logger::log("Node not an image layer, node skipped", Logger::Type::Error);
+		return;
+	}
 
-    setName(node.attribute("name").as_string());
-    setOpacity(node.attribute("opacity").as_float(1.f));
-    setVisible(node.attribute("visible").as_bool(true));
-    setOffset(node.attribute("offsetx").as_int(), node.attribute("offsety").as_int());
-    setSize(node.attribute("width").as_uint(), node.attribute("height").as_uint());
+	//parallaxx="1.5" parallaxy="0.5" repeatx="1" repeaty="1"
 
-    for (const auto& child : node.children())
-    {
-        attribName = child.name();
-        if (attribName == "image")
-        {
-            attribName = child.attribute("source").as_string();
-            if (attribName.empty())
-            {
-                Logger::log("Image Layer has missing source property", Logger::Type::Warning);
-                return;
-            }
+	setName(node.attribute("name").as_string());
+	setOpacity(node.attribute("opacity").as_float(1.f));
+	setVisible(node.attribute("visible").as_bool(true));
+	setOffset(node.attribute("offsetx").as_int(), node.attribute("offsety").as_int());
+	setSize(node.attribute("width").as_uint(), node.attribute("height").as_uint());
+	setParallax(node.attribute("parallaxx").as_float(1.0f), node.attribute("parallaxy").as_float(1.0f));
+	setRepeat(node.attribute("repeatx").as_uint(0), node.attribute("repeaty").as_uint(0));
 
-            if (child.attribute("width") &&  child.attribute("height"))
-            {
-            	m_imageSize.x = child.attribute("width").as_uint();
-            	m_imageSize.y = child.attribute("height").as_uint();
-            }
+	for (const auto& child : node.children())
+	{
+		attribName = child.name();
+		if (attribName == "image")
+		{
+			attribName = child.attribute("source").as_string();
+			if (attribName.empty())
+			{
+				Logger::log("Image Layer has missing source property", Logger::Type::Warning);
+				return;
+			}
 
-            m_filePath = resolveFilePath(attribName, m_workingDir);
-            if (child.attribute("trans"))
-            {
-                attribName = child.attribute("trans").as_string();
-                m_transparencyColour = colourFromString(attribName);
-                m_hasTransparency = true;
-            }
-        }
-        else if (attribName == "properties")
-        {
-            for (const auto& p : child.children())
-            {
-                addProperty(p);
-            }
-        }
-    }
+			if (child.attribute("width") &&  child.attribute("height"))
+			{
+				m_imageSize.x = child.attribute("width").as_uint();
+				m_imageSize.y = child.attribute("height").as_uint();
+			}
+
+			m_filePath = resolveFilePath(attribName, m_workingDir);
+			if (child.attribute("trans"))
+			{
+				attribName = child.attribute("trans").as_string();
+				m_transparencyColour = colourFromString(attribName);
+				m_hasTransparency = true;
+			}
+		}
+		else if (attribName == "properties")
+		{
+			for (const auto& p : child.children())
+			{
+				addProperty(p);
+			}
+		}
+	}
 }

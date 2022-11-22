@@ -1,15 +1,9 @@
-//// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= ////
-//// CyberSpace - Design, art: Roope Romppainen, Code: Mikko Romppainen
-////
-////
-//// Copyright (c) 2022 Mikko Romppainen.
-////
-//// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= ////
 #include <hungerland/util.h>
 #include <hungerland/map.h>
 #include <mikroplot/window.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+//#include <glm/gtx/matrix_operation.hpp>
 
 namespace math = glm;
 using namespace std;
@@ -19,8 +13,6 @@ namespace platformer {
 	/// CONFIG:
 	static const size_t	WINDOW_SIZE_X = 1920;
 	static const size_t	WINDOW_SIZE_Y = 1080;
-	static const float	SCALE_X = 48.0f;
-	static const float	SCALE_Y = 48.0f;
 
 	///
 	/// \brief platform::world::loadScene function.
@@ -30,51 +22,43 @@ namespace platformer {
 	/// \param backgroundFilename
 	/// \param objectTextureFiles
 	///
-	template<typename Functor, typename World>
-	void loadScene(Functor f, World& world, const std::string& mapFilename, const std::string& backgroundFilename, std::vector<std::string> objectTextureFiles) {
-
-		// Load map
-		if(false == world.map.load(mapFilename)) {
-			util::ERROR("Failed to load map file: \"" + mapFilename + "\"!");
-		}
-		util::INFO("Loaded Tiled map: " + mapFilename);
-
-		// Create tileset textures from map tilesets.
-		std::vector< std::shared_ptr<mikroplot::Texture> > mapTextures;
-		for(const auto& ts : world.map.getTilesets()) {
-			auto texture = f.loadTexture(ts.getImagePath());
-			if(texture == 0) {
-				util::ERROR("Failed to load tileset texture file: \"" + ts.getImagePath() + "\"!");
-			}
-			util::INFO("Loaded tileset texture: " + ts.getImagePath());
-			mapTextures.push_back(texture);
-		}
-
+	template<typename Functor, typename World, typename Config>
+	void loadScene(Functor f, World& world, size_t index, const Config& cfg) {
 		// Create map layers by map and tileset.
-		world.mapLayers = hungerland::MapLayers(world.map, mapTextures);
+		world.mapLayers = hungerland::map::load(f, cfg.mapFiles[index]);
 
 		// Load background texture
-		world.background = f.loadTexture(backgroundFilename);
+		world.background = f.loadTexture(cfg.backgroundFiles[index]);
 		if(world.background == 0) {
-			util::ERROR("Failed to load background image file: \"" + backgroundFilename + "\"!");
+			util::ERROR("Failed to load background image (index=" + std::to_string(index)+ ") file: \"" + cfg.backgroundFiles[index] + "\"!");
 		}
-		util::INFO("Loaded background texture: " + mapFilename);
+		util::INFO("Loaded background texture: " + cfg.backgroundFiles[index]);
 
 		// Load object textures
-		for(const auto& filename : objectTextureFiles) {
+		for(const auto& filename : cfg.characterTextureFiles) {
 			auto texture = f.loadTexture(filename);
 			if(texture== 0) {
 				util::ERROR("Failed to load object texture file: \"" + filename + "\"!");
 			}
 			util::INFO("Loaded object texture: " + filename);
-			world.objectTextures.push_back(texture);
+			world.characterTextures.push_back(texture);
 		}
 
-		// Get map tilecount
-		auto tileCount = world.map.getTileCount();
+		// Load item textures
+		for(const auto& filename : cfg.characterTextureFiles) {
+			auto texture = f.loadTexture(filename);
+			if(texture== 0) {
+				util::ERROR("Failed to load item textures: \"" + filename + "\"!");
+			}
+			util::INFO("Loaded object texture: " + filename);
+			world.characterTextures.push_back(texture);
+		}
+
+		// Get map x and y sizes
+		auto mapSize = world.mapLayers.getMapSize();
 		// and adjust camera and to center y and left of map.
-		world.cameraPos = math::vec3(0, tileCount.y/2, 0);
-		world.player.position = math::vec3(0, tileCount.y/2, 0);
+		world.camera.position = math::vec3(0, mapSize.y/2, 0);
+		world.player.position = math::vec3(0, mapSize.y/2, 0);
 	}
 
 	///
@@ -83,28 +67,20 @@ namespace platformer {
 	/// \param name
 	/// \param initialMap
 	///
-	template<typename Functor, typename World, typename Window>
-	auto reset(Window& window, const std::string& name, std::string initialMap) {
-		Functor f;
-		f.loadTexture = [&window](const std::string& fileName) {
-			return window.loadTexture(fileName);
-		};
-		// File names
-		std::vector<std::string> objectTextureFiles = {
-			"assets/images/Player.png",
-			"assets/images/Enemy World 1.png"
-		};
-		auto mapFilename = "assets/"+initialMap+".tmx";
-		auto backgroundFilename = "assets/images/BG World 1.png";
-
+	template<typename Functor, typename World, typename Window, typename Config>
+	auto reset(Window& window, const std::string& name, const Config& cfg) {
 		auto s = World();
 		s.sceneName = name;
-
-		loadScene(f, s, mapFilename, backgroundFilename, objectTextureFiles);
-
+		loadScene(window, s, 0, cfg);
 		return s;
 	};
 
+	struct Config {
+		std::vector<std::string> backgroundFiles;
+		std::vector<std::string> mapFiles;
+		std::vector<std::string> characterTextureFiles;
+		std::vector<std::string> itemTextureFiles;
+	};
 
 	///
 	/// \brief platform::world::update
@@ -127,8 +103,8 @@ namespace platformer {
 			state.player.position.x += 5.0f*dx*dt;
 		}
 
-		// Camera follows player
-		state.cameraPos = state.player.position;
+		// Camera follows player x
+		state.camera.position.x = state.player.position.x;
 		return state;
 	};
 
@@ -152,10 +128,11 @@ namespace platformer {
 	struct World {
 		std::string sceneName;
 		std::shared_ptr<mikroplot::Texture> background;
-		std::vector<std::shared_ptr<mikroplot::Texture> > objectTextures;
-		tmx::Map map;
-		MapLayers mapLayers;
-		glm::vec3 cameraPos;
+		std::vector<std::shared_ptr<mikroplot::Texture> > characterTextures;
+		std::vector<std::shared_ptr<mikroplot::Texture> > itemTextures;
+		TileMap mapLayers;
+		//glm::vec3 cameraPos;
+		GameObject camera;
 		GameObject player;
 		std::vector<GameObject> actors;
 	};
@@ -212,37 +189,41 @@ namespace app {
 	/// \param time
 	///
 	void render(mikroplot::Window& window, const platformer::World<GameObject>& state, float time) {
+
 		using namespace platformer;
 		window.setTitle(state.sceneName);
 		window.setClearColor();
+		auto windSize = window.getWindowSize<glm::vec2>();
 		// Aseta origo ruudun vasempaan alareunaan:
-		static const auto SIZE_X = WINDOW_SIZE_X/2.0f;
-		static const auto SIZE_Y = WINDOW_SIZE_Y/2.0f;
-		auto projection = to_glm(window.setScreen(-SIZE_X, SIZE_X , SIZE_Y, -SIZE_Y));
+		static const auto SIZE_X = float(WINDOW_SIZE_X/2);
+		static const auto SIZE_Y = float(WINDOW_SIZE_Y/2);
+		static const auto SCALE_X = state.mapLayers.getTileSize().x;
+		static const auto SCALE_Y = state.mapLayers.getTileSize().y;
+		auto pr = to_glm(window.setScreen(-SIZE_X, SIZE_X , SIZE_Y, -SIZE_Y));
+		auto projOffset = glm::vec3(SCALE_X/2,SCALE_Y/2,0); // Offset of half tiles to make look pritty.
+		glm::mat4 projection = glm::ortho(-SIZE_X, SIZE_X , SIZE_Y, -SIZE_Y);
+		projection = glm::translate(projection,projOffset);
 
-		// Background
-		auto bgPos = glm::scale(glm::mat4(1.0f), glm::vec3(1920,1080,0));
-		window.drawSprite(to_mat(bgPos), state.background.get());
-
-		// Tilemap
+		// Render Tilemap
 		glm::mat4 mat = glm::mat4(1);
-		glm::vec3 camPos = state.cameraPos;
-		auto mapPos = camPos;
+		auto HALF_TILE = glm::vec3(0.5,0.5,0);
+		auto mapPos = state.camera.position + HALF_TILE;
 		mapPos.x *= SCALE_X;
 		mapPos.y *= SCALE_Y;
 		mat = glm::translate(mat, mapPos);
-		state.mapLayers.render(to_vec(projection*glm::inverse(mat)));
+		glm::vec2 cameraDelta(0);
+		cameraDelta.x = state.camera.position.x * SCALE_X;
+		cameraDelta.y = state.camera.position.y * SCALE_Y;
+		state.mapLayers.render(to_vec(projection*glm::inverse(mat)), cameraDelta);
 
-		// Player
+		// Render Player
 		mat = glm::mat4(1);
-		auto texture = state.objectTextures[0].get();
-		auto playerPos = state.player.position - state.cameraPos;
-		playerPos.x += 0.5f;
-		playerPos.y += 0.5f;
+		auto texture = state.characterTextures[0].get();
+		auto playerPos = state.player.position - state.camera.position;
 		playerPos.x *= SCALE_X;
 		playerPos.y *= SCALE_Y;
-		mat = glm::translate(mat, playerPos);
-		mat = glm::scale(mat, glm::vec3(texture->getWidth(),texture->getHeight(),1));
+		mat = glm::translate(mat, playerPos+projOffset);
+		mat = glm::scale(mat, glm::vec3(SCALE_Y,SCALE_X,1));
 		window.drawSprite(to_mat(mat), texture);
 	}
 
@@ -261,14 +242,20 @@ namespace app {
 } // end - namespace app
 
 /*
+EXAMPLE CPP FILE
 
+namespace example {
+	static const std::string GAME_NAME = "Platformer Game";
+	static const std::string GAME_VERSION = "v0.0.1";
+	static const std::string GAME_LONG_NAME = GAME_NAME + " " + GAME_VERSION;
+}
 
-
-// Main function
+// Example Main function
 int main() {
 	using namespace mikroplot;
 	using namespace platformer;
 	using namespace app;
+	using namespace example;
 	// Create application window and run it.
 	mikroplot::Window window(WINDOW_SIZE_X/2, WINDOW_SIZE_Y/2, "");
 	Functor f;
@@ -276,7 +263,7 @@ int main() {
 	f.loadTexture = [&window](const std::string& fileName) {
 		return window.loadTexture(fileName);
 	};
-	auto state = reset<World,Functor>(f, GAME_LONG_NAME, "world1");
+	auto state = reset<Functor,World>(f, GAME_LONG_NAME, "world1");
 	return 	window.run([&](mikroplot::Window& window, float dt, float time) {
 		app::render(window, update(window, state, f, dt), time);
 	});

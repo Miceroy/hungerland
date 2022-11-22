@@ -10,6 +10,7 @@
 namespace hungerland {
 
 namespace util {
+
 	inline auto INFO(const std::string& text) {
 		printf("INFO: %s\n", text.c_str());
 		fflush(stdout);
@@ -25,7 +26,6 @@ namespace util {
 		fflush(stdout);
 		throw std::runtime_error("ERROR: " + text);
 	}
-
 
 } // End - namespace util
 

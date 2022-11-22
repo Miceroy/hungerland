@@ -353,6 +353,12 @@ namespace mikroplot {
 			}
 			return 0;
 		};
+
+		template<typename T>
+		T getWindowSize() {
+			return T{ m_width, m_height };
+		}
+
 	private:
 		Window() = delete;
 		Window(const Window&) = delete;

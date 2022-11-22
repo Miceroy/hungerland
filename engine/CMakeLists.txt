@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ##
 ## External Dependencies:
+option(MIKROPLOT_BUILD_EXAMPLES "Build MikRoPlot examples" OFF )
 add_subdirectory("ext/mikroplot-main")
 add_subdirectory("ext/glm-master")
 add_subdirectory("ext/tmxlite-master/tmxlite")
