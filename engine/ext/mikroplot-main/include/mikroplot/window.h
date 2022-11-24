@@ -247,7 +247,7 @@ namespace mikroplot {
 		explicit Window(int sizeX, int sizeY, const std::string& title, const std::vector<RGBA>& palette = MIKROPLOT_DEFAULT_PALETTE, int clearColor = 3);
 		~Window();
 
-		std::shared_ptr<mikroplot::Texture> loadTexture(const std::string& filename);
+		std::shared_ptr<mikroplot::Texture> loadTexture(const std::string& filename, bool repeat);
 
 		int getKeyState(int keyCode) const;
 		int getKeyPressed(int keyCode) const;

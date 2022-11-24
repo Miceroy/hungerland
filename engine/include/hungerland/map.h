@@ -81,7 +81,7 @@ namespace hungerland {
 		struct BackgroundLayer {
 		public:
 			BackgroundSubset subset;
-			const tmx::ImageLayer* layer;
+			const tmx::ImageLayer* tmxLayer;
 			BackgroundLayer(const tmx::Map& map, size_t layerIndex, const std::vector< std::shared_ptr<mikroplot::Texture> >& mapTextures);
 			void render(mikroplot::Shader* shader, const glm::vec2& cameraDelta) const;
 			~BackgroundLayer();
@@ -102,10 +102,10 @@ namespace hungerland {
 		/// \param f
 		/// \param mapFile
 		///
-		template<typename Functor>
-		auto load(Functor f, const std::string& mapFile) {
-			return hungerland::TileMap(mapFile, [f](const std::string& imageFile) {
-				return f.loadTexture(imageFile);
+		template<typename MapType, typename Functor>
+		auto load(Functor f, const std::string& mapFile, bool repeat) {
+			return MapType(mapFile, [f,repeat](const std::string& imageFile) {
+				return f.loadTexture(imageFile, repeat);
 			});
 		}
 	}

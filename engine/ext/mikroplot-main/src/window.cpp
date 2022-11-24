@@ -221,7 +221,7 @@ namespace mikroplot {
 	}
 
 
-	std::shared_ptr<mikroplot::Texture> Window::loadTexture(const std::string& filename) {
+	std::shared_ptr<mikroplot::Texture> Window::loadTexture(const std::string& filename, bool repeat) {
 		auto it = m_textures.find(filename);
 		if(it != m_textures.end()) {
 			return it->second;
@@ -232,7 +232,7 @@ namespace mikroplot {
 		if(data==0) {
 			return 0;
 		}
-		auto res = m_textures[filename] = std::make_shared<mikroplot::Texture>(width, height, bpp, data);
+		auto res = m_textures[filename] = std::make_shared<mikroplot::Texture>(width, height, bpp, data, repeat);
 		stbi_image_free(data);
 		return res;
 	}
@@ -575,7 +575,7 @@ namespace mikroplot {
 	}
 
 
-	void Window::drawSprite(const std::vector< std::vector<float> >& transform, const mikroplot::Texture* texture, const std::string& surfaceShader, const std::string& globals){
+	void Window::drawSprite(const std::vector< std::vector<float> >& transform, const mikroplot::Texture* texture, const std::string& surfaceShader, const std::string& globals) {
 		std::vector<float> matModel;
 		for(size_t y=0; y<transform.size(); ++y){
 			for(size_t x=0; x<transform[y].size(); ++x){
@@ -585,7 +585,7 @@ namespace mikroplot {
 		drawSprite(matModel, texture, {}, surfaceShader, globals);
 	}
 
-	void Window::drawFunction(const std::function<float (float)> &f, int color, size_t lineWidth){
+	void Window::drawFunction(const std::function<float (float)> &f, int color, size_t lineWidth) {
 		glfwMakeContextCurrent(m_window);
 		int width, height;
 		glfwGetFramebufferSize(m_window, &width, &height);

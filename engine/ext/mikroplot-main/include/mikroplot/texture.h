@@ -35,8 +35,8 @@ namespace mikroplot {
 	public:
 		typedef std::shared_ptr<Texture> Ptr;
 		Texture() : m_textureId(-1), m_width(0), m_height(0) {}
-		Texture(int width, int height, int nrChannels, const uint8_t* data);
-		Texture(int width, int height, int nrChannels, const float* data);
+		Texture(int width, int height, int nrChannels, const uint8_t* data, bool repeat = false);
+		Texture(int width, int height, int nrChannels, const float* data, bool repeat = false);
 		Texture(int width, int height, bool isDepthTexture);
 		~Texture();
 
