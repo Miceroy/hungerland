@@ -1,18 +1,15 @@
 #include <hungerland/util.h>
 #include <hungerland/map.h>
-#include <mikroplot/window.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-//#include <glm/gtx/matrix_operation.hpp>
+#include <hungerland/window.h>
+#include <hungerland/math.h>
 
 namespace math = glm;
-using namespace std;
 using namespace hungerland;
 
 namespace platformer {
 	/// CONFIG:
-	static const size_t	WINDOW_SIZE_X = 1920;
-	static const size_t	WINDOW_SIZE_Y = 1080;
+	static const size_t	SCREEN_SIZE_X = 1920;
+	static const size_t	SCREEN_SIZE_Y = 1080;
 
 	///
 	/// \brief platform::world::loadScene function.
@@ -27,13 +24,6 @@ namespace platformer {
 		// Create map layers by map and tileset.
 		world.tileMap = hungerland::map::load<hungerland::TileMap>(f, cfg.mapFiles[index], false);
 
-		// Load background texture
-/*		world.background = f.loadTexture(cfg.backgroundFiles[index]);
-		if(world.background == 0) {
-			util::ERROR("Failed to load background image (index=" + std::to_string(index)+ ") file: \"" + cfg.backgroundFiles[index] + "\"!");
-		}
-		util::INFO("Loaded background texture: " + cfg.backgroundFiles[index]);
-*/
 		// Load object textures
 		for(const auto& filename : cfg.characterTextureFiles) {
 			auto texture = f.loadTexture(filename, false);
@@ -57,47 +47,32 @@ namespace platformer {
 		// Get map x and y sizes
 		auto mapSize = world.tileMap.getMapSize();
 		// and adjust camera and to center y and left of map.
-		//world.camera.position = math::vec3(0, mapSize.y/2, 0);
-		world.player.position = math::vec3(0, 0, 0);
-		world.camera.position = math::vec3(0, 0, 0);
-		//world.player.position = math::vec3(0, mapSize.y, 0);
+		world.player.position = math::vec3(5, mapSize.y/2, 0);
+		world.camera.position = math::vec3(0, mapSize.y/2, 0);
 	}
 
 	///
-	/// \brief platform::world::reset
-	/// \param f
-	/// \param name
-	/// \param initialMap
+	/// \brief checkMapLimits checks object collision against map limits.
+	/// \param tileMap
+	/// \param obj
+	/// \return Return 0 if no collision or normal and velocity coded in single vector.
 	///
-	template<typename Functor, typename World, typename Window, typename Config>
-	auto reset(Window& window, const std::string& name, const Config& cfg) {
-		auto s = World();
-		s.sceneName = name;
-		loadScene(window, s, 0, cfg);
-		return s;
-	};
-
-	struct Config {
-		std::vector<std::string> backgroundFiles;
-		std::vector<std::string> mapFiles;
-		std::vector<std::string> characterTextureFiles;
-		std::vector<std::string> itemTextureFiles;
-	};
-
 	template<typename TileMap, typename Object>
-	glm::vec3 checkMapCollisions(const TileMap& tileMap, const Object& obj) {
+	glm::vec3 checkMapLimits(const TileMap& tileMap, const Object& obj) {
 		auto mapSize = tileMap.getMapSize();
 		mapSize.x -= 1;
 		mapSize.y -= 1;
-		float posX = obj.position.x;
-		float posY = obj.position.y;
+		auto posX = obj.position.x;
+		auto posY = obj.position.y;
 
+		// Compute collision normal from overlapping objects.
 		glm::vec3 normal(0);
-		if(posX < 0) normal.x = 1;
-		if(posX > mapSize.x) normal.x = -1;
-		if(posY < 0) normal.y = 1;
-		if(posY > mapSize.y) normal.y = -1;
-		if(glm::dot(normal,normal) > 0){
+		if(posX < 0)			normal.x =  1;
+		if(posX > mapSize.x)	normal.x = -1;
+		if(posY < 0)			normal.y =  1;
+		if(posY > mapSize.y)	normal.y = -1;
+
+		if(glm::dot(normal,normal) > 0) {
 			return glm::length(obj.velocity)*glm::normalize(normal);
 		}
 		return glm::vec3(0);
@@ -105,18 +80,18 @@ namespace platformer {
 
 	namespace phys {
 
-		template<typename World, typename Player>
-		auto integrateBody(const World& world, const Player& body, const glm::vec3& F, const glm::vec3& I, float dt) {
-			auto euler = [&I,&F,&world](Player body, float dt) {
+		template<typename Body, typename CollisionFunc>
+		auto integrateBody(const CollisionFunc& getCollision, const Body& body, const glm::vec3& F, const glm::vec3& I, float dt) {
+			auto euler = [&](Body body, float dt) {
 				// Integrate velocity from forces and position from velocity:
 				auto i = dt * (F + body.acceleration);
 				body.velocity += I + i;
 				body.position += body.velocity * dt;
-				return std::make_tuple(body, checkMapCollisions(world.tileMap, body));
+				return std::make_tuple(body, getCollision(body));
 			};
 			auto resI = glm::vec3(0);
-			float deltaTime = dt;
-			Player resBody = body;
+			auto deltaTime = dt;
+			auto resBody = body;
 			for(size_t i=0; i<5; ++i){
 				const float step = 0.5*deltaTime;
 				auto [newBody, collision] = euler(body, deltaTime);
@@ -148,8 +123,8 @@ namespace platformer {
 			return body;
 		};
 
-		template<typename Player>
-		auto constraintCharacter(Player character, const glm::vec3& N) {
+		template<typename Character>
+		auto constraintCharacter(Character character, const glm::vec3& N) {
 			// Collision response after integrate:
 			character.grounded |= N.y > 0;
 			character.topped |= N.y < 0;
@@ -168,12 +143,15 @@ namespace platformer {
 			return character;
 		};
 
-		template<typename World, typename Player>
-		auto updateCharacter(const World& world, Player character, float vMax, float dx, bool accelerate, bool groundJump, bool wallJump, float dt) {
+		template<typename World, typename Character>
+		auto updateCharacter(const World& world, Character character, float vMax, float dx, bool accelerate, bool groundJump, bool wallJump, float dt) {
 			const float PY = 15;
 			const float VX_ACC = 100;
 			const float VX_BREAK = 100;
 			const float S = 2.0f;
+			auto checkCollisions = [&world](const Character& body){
+				return checkMapLimits<TileMap,Character>(world.tileMap, body);
+			};
 
 			glm::vec3 totalForce(0,0,0);
 			glm::vec3 totalImpulse(0,0,0);
@@ -201,7 +179,7 @@ namespace platformer {
 				}
 			}
 
-			auto [newBody, N, I] = integrateBody(world, character, totalForce, totalImpulse, dt);
+			auto [newBody, N, I] = integrateBody(checkCollisions , character, totalForce, totalImpulse, dt);
 			if(groundJump) {
 				newBody.velocity.x = -totalImpulse.x*dt;
 			} if (wallJump) {
@@ -230,12 +208,20 @@ namespace platformer {
 
 		template<typename World, typename Player>
 		auto updateObject(const World& world, const Player& body, float vMax, const glm::vec3& totalForce, const glm::vec3& totalImpulse, float dt) {
-			auto [newBody, N, I] = integrateBody(world, body, totalForce, totalImpulse, dt);
+			auto checkCollisions = [&world](const Player& body){
+				return checkMapLimits<TileMap,Player>(world.tileMap, body);
+			};
+			auto [newBody, N, I] = integrateBody(checkCollisions, body, totalForce, totalImpulse, dt);
 			return constraintObject(body, constraintCharacter(newBody, N), vMax, N);
 		};
 
 	}
 	namespace player {
+		struct Input {
+			float dx;
+			bool accelerate;
+			bool wantJump;
+		};
 
 		const float VX_MAX = 6;
 		const float G = -20;
@@ -246,14 +232,12 @@ namespace platformer {
 		/// \param player
 		/// \param dt
 		///
-		template<typename UserInterface, typename World, typename Player>
-		auto update(const UserInterface& ui, const World& world, Player player, float dt) {
+		template<typename Input, typename World, typename Player>
+		auto update(const Input& ui, const World& world, Player player, float dt) {
 			// Add player update by input:
-			float dx		= ui.getKeyState(mikroplot::KEY_RIGHT)			- ui.getKeyState(mikroplot::KEY_LEFT);
-			bool accelerate	= ui.getKeyState(mikroplot::KEY_LEFT_SHIFT)		+ ui.getKeyState(mikroplot::KEY_RIGHT_SHIFT);
-			bool wantJump	= ui.getKeyPressed(mikroplot::KEY_LEFT_CONTROL) + ui.getKeyPressed(mikroplot::KEY_RIGHT_CONTROL);
-			bool groundJump	= wantJump && player.grounded;
-			bool wallJump	= wantJump && player.hitWall;
+
+			bool groundJump	= ui.wantJump && player.grounded;
+			bool wallJump	= ui.wantJump && player.hitWall;
 
 			// Add gravity and integrate player:
 			glm::vec3 totalForce(0);
@@ -267,7 +251,7 @@ namespace platformer {
 			player.topped = false;
 			player.hitWall = false;
 			player = phys::updateObject(world, player, VX_MAX, totalForce, totalImpulse, dt);
-			return phys::updateCharacter(world, player, VX_MAX, dx, accelerate, groundJump, wallJump, dt);
+			return phys::updateCharacter(world, player, VX_MAX, ui.dx, ui.accelerate, groundJump, wallJump, dt);
 		};
 	}
 
@@ -279,8 +263,8 @@ namespace platformer {
 		/// \param camera
 		/// \param dt
 		///
-		template<typename UserInterface, typename World, typename Camera>
-		auto update(const UserInterface& ui, const World& world, Camera camera, float dt) {
+		template<typename World, typename Camera>
+		auto update(const World& world, Camera camera, float dt) {
 			// Camera follows player x:
 			camera.position.y = world.player.position.y;
 			float dPosX = world.player.position.x-camera.position.x;
@@ -307,23 +291,28 @@ namespace platformer {
 		};
 	}
 
-	///
-	/// \brief platform::world::update
-	/// \param window
-	/// \param state
-	/// \param f
-	/// \param dt
-	/// \return
-	///
-	template<typename Window, typename World, typename Functor>
-	const auto& update(const Window& window, World& world, Functor f, float dt) {
+
+	template<typename World, typename Functor, typename Input>
+	const auto& update(World& world, Functor f, Input input, float dt) {
 		typedef decltype(world.player) Player;
-		world.player = player::update(window, world, world.player, dt);
-		world.camera = camera::update(window, world, world.camera, dt);
+		world.player = player::update(input, world, world.player, dt);
+		world.camera = camera::update(world, world.camera, dt);
 		/*printf("Player=<%2.2f, %2.2f> Camera=<%2.2f, %2.2f> Grounded:%d, Topped:%d, Walled:%d \n",
 			   world.player.position.x, world.player.position.y, world.camera.position.x, world.camera.position.y,
 			   world.player.grounded, world.player.topped, world.player.hitWall);*/
 		return world;
+	};
+
+}
+
+
+namespace app {
+
+	struct Config {
+		std::vector<std::string> backgroundFiles;
+		std::vector<std::string> mapFiles;
+		std::vector<std::string> characterTextureFiles;
+		std::vector<std::string> itemTextureFiles;
 	};
 
 	///
@@ -332,19 +321,14 @@ namespace platformer {
 	template<typename GameObject>
 	struct World {
 		std::string sceneName;
-		//std::shared_ptr<mikroplot::Texture> background;
 		std::vector<std::shared_ptr<mikroplot::Texture> > characterTextures;
 		std::vector<std::shared_ptr<mikroplot::Texture> > itemTextures;
 		TileMap tileMap;
-		//glm::vec3 cameraPos;
 		GameObject camera;
 		GameObject player;
 		std::vector<GameObject> actors;
 	};
-}
 
-
-namespace app {
 	struct GameObject {
 		glm::vec3 position;
 		glm::vec3 velocity = glm::vec3(0);
@@ -354,23 +338,6 @@ namespace app {
 		bool hitWall = false;
 	};
 
-	struct Game {
-	};
-
-
-	mikroplot::Grid Sprite(std::string name) {
-		return mikroplot::gridN(32, 12);
-	}
-
-	auto to_glm(std::vector<float> m){
-		glm::mat4 mat;
-		for(size_t i=0; i<4; ++i) {
-			for(size_t j=0; j<4; ++j) {
-				mat[i][j] = m[i*4 + j];
-			}
-		}
-		return mat;
-	}
 	auto to_mat(glm::mat4 m){
 		std::vector< std::vector<float> > mat;
 		for(size_t i=0; i<4; ++i) {
@@ -381,6 +348,7 @@ namespace app {
 		}
 		return mat;
 	}
+
 	auto to_vec(glm::mat4 mat){
 		std::vector<float> v;
 		for(size_t i=0; i<4; ++i) {
@@ -392,29 +360,43 @@ namespace app {
 	}
 
 
+
+
 	///
-	/// \brief render
+	/// \brief app::reset
+	/// \param window
+	/// \param name
+	/// \param cfg
+	///
+	template<typename World, typename Functor, typename Config>
+	auto reset(Functor f, const std::string& name, const Config& cfg) {
+		auto world = World();
+		world.sceneName = name;
+		platformer::loadScene(f, world, 0, cfg);
+		return world;
+	};
+
+
+	///
+	/// \brief app::render
 	/// \param window
 	/// \param state
 	/// \param time
 	///
-	void render(mikroplot::Window& window, const platformer::World<GameObject>& state, float time) {
+	void render(mikroplot::Window& window, const app::World<GameObject>& state, float time) {
 		static const auto MAP_OFFSET = glm::vec3(0.5, 0.5, 0);
 
 		using namespace platformer;
 		window.setTitle(state.sceneName);
 		window.setClearColor();
 
-
-
 		// Aseta origo ruudun vasempaan alareunaan:
-		const auto SIZE_X = float(WINDOW_SIZE_X/2);
-		const auto SIZE_Y = float(WINDOW_SIZE_Y/2);
+		const auto SIZE_X = float(SCREEN_SIZE_X/2);
+		const auto SIZE_Y = float(SCREEN_SIZE_Y/2);
 		window.setScreen(-SIZE_X, SIZE_X , SIZE_Y, -SIZE_Y);
 		glm::mat4 projection = glm::ortho(-SIZE_X, SIZE_X , SIZE_Y, -SIZE_Y);
 
 
-		auto tileSize = state.tileMap.getTileSize();
 		// Offset of half tiles to look at centers of tiles.
 		auto renderMap = [](const TileMap& mapLayers, glm::mat4 matProj, const size2d_t& sizeInPixels, const glm::vec3& cameraPosition) {
 			const auto SCALE_X = mapLayers.getTileSize().x;
@@ -422,7 +404,6 @@ namespace app {
 			const auto PROJ_OFFSET = glm::vec3(SCALE_X/2,SCALE_Y/2,0);
 
 			auto camPos = cameraPosition;
-			//camPos.x = -camPos.; // Flip y and offset
 			camPos.y =  mapLayers.getMapSize().y-camPos.y-1; // Flip y and offset
 			auto mapPos = camPos + MAP_OFFSET;  // And offset y
 			mapPos.x *= SCALE_X;
@@ -459,6 +440,9 @@ namespace app {
 					state.player.position, state.characterTextures[0].get());
 	}
 
+	///
+	/// \brief The Functor class
+	///
 	struct Functor {
 		GameObject spawn(const std::string& type) {
 			if(type=="Background") {
