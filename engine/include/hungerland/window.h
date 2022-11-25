@@ -1,29 +1,3 @@
-//// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= ////
-//// MikRoPlot - C++ Plotting made easy.
-////
-//// MIT License
-////
-//// Copyright (c) 2022 Mikko Romppainen.
-////
-//// Permission is hereby granted, free of charge, to any person obtaining
-//// a copy of this software and associated documentation files (the
-//// "Software"), to deal in the Software without restriction, including
-//// without limitation the rights to use, copy, modify, merge, publish,
-//// distribute, sublicense, and/or sell copies of the Software, and to
-//// permit persons to whom the Software is furnished to do so, subject to
-//// the following conditions:
-////
-//// The above copyright notice and this permission notice shall be included
-//// in all copies or substantial portions of the Software.
-////
-//// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-//// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-//// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-//// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-//// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-//// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-//// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= ////
 #pragma once
 #include <functional>
 #include <string>
@@ -38,7 +12,7 @@
 
 struct GLFWwindow;
 
-namespace mikroplot {
+namespace hungerland {
 
 	namespace shaders {
 	static const std::string heatmapGradient =
@@ -247,7 +221,7 @@ namespace mikroplot {
 		explicit Window(int sizeX, int sizeY, const std::string& title, const std::vector<RGBA>& palette = MIKROPLOT_DEFAULT_PALETTE, int clearColor = 3);
 		~Window();
 
-		std::shared_ptr<mikroplot::Texture> loadTexture(const std::string& filename, bool repeat);
+		std::shared_ptr<Texture> loadTexture(const std::string& filename, bool repeat);
 
 		int getKeyState(int keyCode) const;
 		int getKeyPressed(int keyCode) const;
@@ -287,7 +261,7 @@ namespace mikroplot {
 
 		void drawSprite(const std::vector< std::vector<float> >& transform, const Grid& pixels, const std::string& surfaceShader="", const std::string& globals="");
 		void drawSprite(const std::vector< std::vector<float> >& transform, const Grid& pixels, const std::vector<Constant>& inputConstants, const std::string& surfaceShader, const std::string& globals="");
-		void drawSprite(const std::vector< std::vector<float> >& transform, const mikroplot::Texture* texture, const std::string& surfaceShader="", const std::string& globals="");
+		void drawSprite(const std::vector< std::vector<float> >& transform, const Texture* texture, const std::string& surfaceShader="", const std::string& globals="");
 
 		void drawFunction(const std::function<float(float)>& f, int color=DEFAULT_COLOR, std::size_t lineWidth = 2);
 		void drawPixels(const Grid& pixels);
@@ -372,7 +346,7 @@ namespace mikroplot {
 		int								m_width;
 		int								m_height;
 		std::vector<RGBA>				m_palette;
-		std::map<std::string, std::shared_ptr<mikroplot::Texture> >	m_textures;
+		std::map<std::string, std::shared_ptr<Texture> >	m_textures;
 		GLFWwindow*                     m_window;
 
 		std::vector<float> m_projection;

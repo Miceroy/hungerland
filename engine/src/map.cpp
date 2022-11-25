@@ -121,12 +121,12 @@ namespace hungerland {
 			"}";
 	}
 
-	TileMap::TileLayer::TileLayer(const tmx::Map& map, size_t layerIndex, const std::vector<std::shared_ptr<mikroplot::Texture> >& tilesetTextures) {
+	TileMap::TileLayer::TileLayer(const tmx::Map& map, size_t layerIndex, const std::vector<std::shared_ptr<Texture> >& tilesetTextures) {
 		const auto& mapSize = map.getTileCount();
 		const auto& tilesets = map.getTilesets();
 		const tmx::TileLayer& layer = *dynamic_cast<tmx::TileLayer*>(map.getLayers()[layerIndex].get());
-		tileIds = mikroplot::gridNM(layer.getSize().x,layer.getSize().y, 0);
-		tileFlags = mikroplot::gridNM(layer.getSize().x,layer.getSize().y, 0);
+		tileIds = gridNM(layer.getSize().x,layer.getSize().y, 0);
+		tileFlags = gridNM(layer.getSize().x,layer.getSize().y, 0);
 		for(auto tilesetId = 0u; tilesetId < tilesets.size(); ++tilesetId) {
 			// Check each tile ID to see if it falls in the current tile set
 			const auto& tileSet = tilesets[tilesetId];
@@ -167,7 +167,7 @@ namespace hungerland {
 				TileSubset subset;
 				subset.used = true;
 				subset.texture = tilesetTextures[tilesetId];
-				subset.lookup = std::make_shared<mikroplot::Texture>(mapSize.x, mapSize.y, 4, &pixels[0]);
+				subset.lookup = std::make_shared<Texture>(mapSize.x, mapSize.y, 4, &pixels[0]);
 				subset.tileSize.x =  tileSet.getTileSize().x;
 				subset.tileSize.y = tileSet.getTileSize().y;
 				subset.tilesetCount.x = tileSet.getColumnCount();
@@ -189,7 +189,7 @@ namespace hungerland {
 	}
 
 
-	void TileMap::TileLayer::render(mikroplot::Shader* shader, mikroplot::mesh::Mesh* mesh) const {
+	void TileMap::TileLayer::render(Shader* shader, mesh::Mesh* mesh) const {
 		for(const auto& ss : subsets)	{
 			if(ss.used) {
 				// Set map properties
@@ -201,23 +201,23 @@ namespace hungerland {
 				shader->setUniform("u_opacity", ss.opacity);
 
 				glActiveTexture(GL_TEXTURE0);
-				mikroplot::checkGLError();
+				checkGLError();
 				glBindTexture(GL_TEXTURE_2D, ss.texture->getTextureId());
-				mikroplot::checkGLError();
+				checkGLError();
 
 				glActiveTexture(GL_TEXTURE1);
-				mikroplot::checkGLError();
+				checkGLError();
 				glBindTexture(GL_TEXTURE_2D, ss.lookup->getTextureId());
-				mikroplot::checkGLError();
+				checkGLError();
 
-				mikroplot::mesh::render(*mesh, GL_TRIANGLE_STRIP, 4);
+				mesh::render(*mesh, GL_TRIANGLE_STRIP, 4);
 			}
 		}
 	}
 
 	// ImageLayer
 
-	TileMap::BackgroundLayer::BackgroundLayer(const tmx::Map& map, size_t layerIndex, const std::vector< std::shared_ptr<mikroplot::Texture> >& imageTextures) {
+	TileMap::BackgroundLayer::BackgroundLayer(const tmx::Map& map, size_t layerIndex, const std::vector< std::shared_ptr<Texture> >& imageTextures) {
 		const tmx::ImageLayer& layer = *dynamic_cast<tmx::ImageLayer*>(map.getLayers()[layerIndex].get());
 
 		subset.used = true;
@@ -254,14 +254,14 @@ namespace hungerland {
 			0.f, sy,    0.0f, wy,
 			sx,  sy,    wx,   wy,
 		};
-		subset.mesh = mikroplot::mesh::create(positions, 2, texCoords, 4);
+		subset.mesh = mesh::create(positions, 2, texCoords, 4);
 	}
 
 	TileMap::BackgroundLayer::~BackgroundLayer() {
 
 	}
 
-	void TileMap::BackgroundLayer::render(mikroplot::Shader* shader, const glm::vec2& cameraDelta) const {
+	void TileMap::BackgroundLayer::render(Shader* shader, const glm::vec2& cameraDelta) const {
 		if(subset.used) {
 			float paralX = 0;
 			if(subset.parallaxFactor.x == 1.0f) {
@@ -286,11 +286,11 @@ namespace hungerland {
 			shader->setUniform("u_repeat", subset.repeat.x, subset.repeat.y);
 			shader->setUniform("parallax", -paralX, paralY);
 			glActiveTexture(GL_TEXTURE0);
-			mikroplot::checkGLError();
+			checkGLError();
 			glBindTexture(GL_TEXTURE_2D, subset.texture->getTextureId());
-			mikroplot::checkGLError();
+			checkGLError();
 
-			mikroplot::mesh::render(*subset.mesh, GL_TRIANGLE_STRIP, 4);
+			mesh::render(*subset.mesh, GL_TRIANGLE_STRIP, 4);
 		}
 	}
 
@@ -298,10 +298,10 @@ namespace hungerland {
 
 
 
-	TileMap::TileMap(const std::string& mapFilename, std::function<mikroplot::Texture::Ptr(const std::string&)> loadTexture)
+	TileMap::TileMap(const std::string& mapFilename, std::function<Texture::Ptr(const std::string&)> loadTexture)
 		: m_map(std::make_shared<tmx::Map>())
-		, m_tileShader(std::make_shared<mikroplot::Shader>(spriteVSSource(),tilemapShader()))
-		, m_imageShader(std::make_shared<mikroplot::Shader>(spriteVSSource(),gbShader()))	{
+		, m_tileShader(std::make_shared<Shader>(spriteVSSource(),tilemapShader()))
+		, m_imageShader(std::make_shared<Shader>(spriteVSSource(),gbShader()))	{
 		// Load map
 		if(false == m_map->load(mapFilename)) {
 			util::ERROR("Failed to load map file: \"" + mapFilename + "\"!");
@@ -336,7 +336,7 @@ namespace hungerland {
 				0.f, sy,    0.0f, wy,
 				sx,  sy,    wx,   wy,
 			};
-			m_mapMesh = mikroplot::mesh::create(positions, 2, texCoords, 4);
+			m_mapMesh = mesh::create(positions, 2, texCoords, 4);
 		}
 
 		const auto& layers = m_map->getLayers();

@@ -1,10 +1,3 @@
-//// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= ////
-//// CyberSpace - Design, art: Roope Romppainen, Code: Mikko Romppainen
-////
-////
-//// Copyright (c) 2022 Mikko Romppainen.
-////
-//// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= ////
 #include <stdexcept>
 
 namespace hungerland {

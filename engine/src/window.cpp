@@ -1,29 +1,3 @@
-//// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= ////
-//// MikRoPlot - C++ Plotting made easy.
-////
-//// MIT License
-////
-//// Copyright (c) 2022 Mikko Romppainen.
-////
-//// Permission is hereby granted, free of charge, to any person obtaining
-//// a copy of this software and associated documentation files (the
-//// "Software"), to deal in the Software without restriction, including
-//// without limitation the rights to use, copy, modify, merge, publish,
-//// distribute, sublicense, and/or sell copies of the Software, and to
-//// permit persons to whom the Software is furnished to do so, subject to
-//// the following conditions:
-////
-//// The above copyright notice and this permission notice shall be included
-//// in all copies or substantial portions of the Software.
-////
-//// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-//// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-//// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-//// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-//// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-//// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-//// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= ////
 #include <hungerland/window.h>
 #include <glad/gl.h>		// Include glad
 #include <GLFW/glfw3.h>		// Include glfw
@@ -51,9 +25,7 @@
 
 
 
-using namespace std;
-
-namespace mikroplot {
+namespace hungerland {
 	namespace mesh {
 	void Mesh::setVBOData(int index, const std::vector<float>& data, size_t numComponents) {
 		glBindVertexArray(vao);
@@ -221,7 +193,7 @@ namespace mikroplot {
 	}
 
 
-	std::shared_ptr<mikroplot::Texture> Window::loadTexture(const std::string& filename, bool repeat) {
+	std::shared_ptr<Texture> Window::loadTexture(const std::string& filename, bool repeat) {
 		auto it = m_textures.find(filename);
 		if(it != m_textures.end()) {
 			return it->second;
@@ -232,7 +204,7 @@ namespace mikroplot {
 		if(data==0) {
 			return 0;
 		}
-		auto res = m_textures[filename] = std::make_shared<mikroplot::Texture>(width, height, bpp, data, repeat);
+		auto res = m_textures[filename] = std::make_shared<Texture>(width, height, bpp, data, repeat);
 		stbi_image_free(data);
 		return res;
 	}
@@ -575,7 +547,7 @@ namespace mikroplot {
 	}
 
 
-	void Window::drawSprite(const std::vector< std::vector<float> >& transform, const mikroplot::Texture* texture, const std::string& surfaceShader, const std::string& globals) {
+	void Window::drawSprite(const std::vector< std::vector<float> >& transform, const Texture* texture, const std::string& surfaceShader, const std::string& globals) {
 		std::vector<float> matModel;
 		for(size_t y=0; y<transform.size(); ++y){
 			for(size_t x=0; x<transform[y].size(); ++x){
@@ -653,10 +625,10 @@ namespace mikroplot {
 			shadeShader.use([&](){
 				shadeShader.setUniformm("M", &m_projection[0]);
 
-				auto maxX = max(m_right, m_left);
-				auto minX = min(m_right, m_left);
-				auto maxY = max(m_top, m_bottom);
-				auto minY = min(m_top, m_bottom);
+				auto maxX = std::max(m_right, m_left);
+				auto minX = std::min(m_right, m_left);
+				auto maxY = std::max(m_top, m_bottom);
+				auto minY = std::min(m_top, m_bottom);
 				shadeShader.setUniformv("leftBottom", {m_left, m_bottom});
 				shadeShader.setUniformv("rightTop", {m_right, m_top});
 				shadeShader.setUniform("min", minX, minY);
