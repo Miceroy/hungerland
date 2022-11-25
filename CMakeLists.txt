@@ -9,6 +9,6 @@ add_subdirectory("engine")
 
 
 ## Platformer example has one cpp file which can be found from: examples/platformer/main.cpp
-add_executable(CyberSpace examples/cs/main.cpp examples/platformer.h)
+add_executable(PlatformerExample examples/platformer/main.cpp examples/platformer.h)
 # Link platformer example with hungerland engine
-target_link_libraries(CyberSpace hungerland)
+target_link_libraries(PlatformerExample hungerland)
