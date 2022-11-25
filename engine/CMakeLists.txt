@@ -31,10 +31,9 @@ target_link_libraries(hungerland PUBLIC glfw glm tmxlite)
 # Specify include directories
 include_directories("include")
 target_include_directories(hungerland PUBLIC "ext/glfw-3.3.6/include")
-target_include_directories(hungerland PUBLIC "ext/stb-master")
+target_include_directories(hungerland PRIVATE "ext/stb-master")
 target_include_directories(hungerland PUBLIC "ext/miniaudio")
 target_include_directories(hungerland PUBLIC "${GLFW_SOURCE_DIR}/deps")
-
 target_include_directories(hungerland PUBLIC "include")
 target_include_directories(hungerland PUBLIC "ext/mikroplot-main/ext/glfw-3.3.6/deps")
 target_include_directories(hungerland PUBLIC

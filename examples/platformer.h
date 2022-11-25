@@ -321,8 +321,8 @@ namespace app {
 	template<typename GameObject>
 	struct World {
 		std::string sceneName;
-		std::vector<std::shared_ptr<mikroplot::Texture> > characterTextures;
-		std::vector<std::shared_ptr<mikroplot::Texture> > itemTextures;
+		std::vector<std::shared_ptr<Texture> > characterTextures;
+		std::vector<std::shared_ptr<Texture> > itemTextures;
 		TileMap tileMap;
 		GameObject camera;
 		GameObject player;
@@ -383,7 +383,7 @@ namespace app {
 	/// \param state
 	/// \param time
 	///
-	void render(mikroplot::Window& window, const app::World<GameObject>& state, float time) {
+	void render(Window& window, const app::World<GameObject>& state, float time) {
 		static const auto MAP_OFFSET = glm::vec3(0.5, 0.5, 0);
 
 		using namespace platformer;
@@ -420,7 +420,7 @@ namespace app {
 			return matProj;
 		};
 
-		auto renderObject = [](mikroplot::Window& window, const glm::mat4& matProj, const size2d_t& sizeInPixels, const glm::vec3& cameraPosition, glm::vec3 position, const mikroplot::Texture* texture) {
+		auto renderObject = [](Window& window, const glm::mat4& matProj, const size2d_t& sizeInPixels, const glm::vec3& cameraPosition, glm::vec3 position, const Texture* texture) {
 			auto camPos = cameraPosition;
 			position.x = position.x - camPos.x + MAP_OFFSET.x; // Flip x and offset.
 			position.y = camPos.y - position.y + MAP_OFFSET.y; // Flip y and offset.
@@ -451,7 +451,7 @@ namespace app {
 			return GameObject{};
 		}
 
-		std::function<std::shared_ptr<mikroplot::Texture>(const std::string&,bool)> loadTexture;
+		std::function<std::shared_ptr<Texture>(const std::string&,bool)> loadTexture;
 
 	}; // end - struct Functor
 

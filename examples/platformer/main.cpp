@@ -36,7 +36,7 @@ int main() {
 	using namespace my_game_app;
 
 	// Create application window and run it.
-	mikroplot::Window window(WINDOW_SIZE_X, WINDOW_SIZE_Y, "");
+	Window window(WINDOW_SIZE_X, WINDOW_SIZE_Y, "");
 	app::Functor f;
 	typedef app::World<app::GameObject> World;
 	f.loadTexture = [&window](const std::string& fileName, bool repeat) {
@@ -44,12 +44,12 @@ int main() {
 	};
 
 	auto state = app::reset<World>(f, GAME_LONG_NAME, CONFIG);
-	return window.run([&](mikroplot::Window& window, float dt, float time) {
+	return window.run([&](Window& window, float dt, float time) {
 		platformer::player::Input playerInput;
 		// Configure input buttons:
-		playerInput.dx			= window.getKeyState(mikroplot::KEY_RIGHT)			- window.getKeyState(mikroplot::KEY_LEFT);
-		playerInput.accelerate	= window.getKeyState(mikroplot::KEY_LEFT_SHIFT)		+ window.getKeyState(mikroplot::KEY_RIGHT_SHIFT);
-		playerInput.wantJump	= window.getKeyPressed(mikroplot::KEY_LEFT_CONTROL) + window.getKeyPressed(mikroplot::KEY_RIGHT_CONTROL);
+		playerInput.dx			= window.getKeyState(KEY_RIGHT)				- window.getKeyState(KEY_LEFT);
+		playerInput.accelerate	= window.getKeyState(KEY_LEFT_SHIFT)		+ window.getKeyState(KEY_RIGHT_SHIFT);
+		playerInput.wantJump	= window.getKeyPressed(KEY_LEFT_CONTROL)	+ window.getKeyPressed(KEY_RIGHT_CONTROL);
 		app::render(window, platformer::update(state, f, playerInput, dt), time);
 	});
 }
