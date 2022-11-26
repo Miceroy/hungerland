@@ -38,15 +38,13 @@ namespace mesh {
 	/// @author Mikko Romppainen (kajakbros@gmail.com)
 	///
 	struct Mesh {
-		~Mesh() {
-			release();
-		}
+		typedef std::shared_ptr<Mesh> Ref;
+		~Mesh();
 		unsigned vao;
 		unsigned vbos[2];
 
-		void setVBOData(int index, const std::vector<float>& data, size_t numComponents);
-		void setVBOData(int index, const std::vector<glm::vec2>& data);
-		void release();
+		void setVBOData(int index, const std::vector<float>& data, size_t numComponents, bool dynamic = false);
+		void setVBOData(int index, const std::vector<glm::vec2>& data, bool dynamic = false);
 	};
 
 	///
@@ -104,6 +102,16 @@ namespace quad {
 	/// \return mesh::Mesh
 	///
 	std::shared_ptr<mesh::Mesh> createImage(float originX, float originY, float sizeX, float sizeY, float texScaleX=1, float texScaleY=1);
+
+	///
+	/// \brief createScreenSizeQuad
+	/// \param left
+	/// \param right
+	/// \param bottom
+	/// \param top
+	/// \return
+	///
+	std::shared_ptr<mesh::Mesh> createScreenSizeQuad(float left, float right, float bottom, float top);
 
 	///
 	/// \brief render

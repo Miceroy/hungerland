@@ -51,8 +51,15 @@ int main() {
 	window.setTitle(GAME_LONG_NAME);
 
 	auto state = app::reset<World>(f, GAME_LONG_NAME, CONFIG);
-	return window.run([&state,&f](window::Window& window, float dt) {
+	float totalTime = 0;
+	int lastFrame = -1;
+	return window.run([&](window::Window& window, float dt) {
+		totalTime += dt;
 		auto& input = window.getInput();
+		if(int(totalTime) > lastFrame){
+			window.setTitle(GAME_LONG_NAME + "    FPS="+std::to_string(1.0f/dt).substr(0,5));
+			lastFrame = int(totalTime);
+		}
 		// Configure input buttons:
 		platformer::player::Input playerInput;
 		playerInput.dx			= input.getKeyState(window::KEY_RIGHT)			- input.getKeyState(window::KEY_LEFT);

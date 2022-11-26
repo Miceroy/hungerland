@@ -92,7 +92,7 @@ namespace screen {
 
 	private:
 		std::unique_ptr<graphics::FrameBuffer>	m_shadeFbo;
-		std::unique_ptr<shader::Shader>         m_ssqShader;
+		std::shared_ptr<shader::Shader>         m_ssqShader;
 		std::shared_ptr<mesh::Mesh>				m_ssq;
 		std::shared_ptr<mesh::Mesh>				m_sprite;
 

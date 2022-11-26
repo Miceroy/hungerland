@@ -40,13 +40,17 @@
 
 namespace hungerland {
 namespace mesh {
-	void Mesh::setVBOData(int index, const std::vector<float>& data, size_t numComponents) {
+	Mesh::~Mesh() {
+		glDeleteVertexArrays(1, &vao);
+		glDeleteBuffers(sizeof(vbos)/sizeof(vbos[0]), vbos);
+	}
+	void Mesh::setVBOData(int index, const std::vector<float>& data, size_t numComponents, bool dynamic) {
 		glBindVertexArray(vao);
 		checkGLError();
 
 		glBindBuffer(GL_ARRAY_BUFFER, vbos[index]);
 		checkGLError();
-		glBufferData(GL_ARRAY_BUFFER, data.size()*sizeof(data[0]), &data[0], GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, data.size()*sizeof(data[0]), &data[0], dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
 		checkGLError();
 		glVertexAttribPointer(index, numComponents, GL_FLOAT, GL_FALSE, numComponents * sizeof(float), (void*)0);
 		checkGLError();
@@ -57,13 +61,13 @@ namespace mesh {
 		checkGLError();
 	}
 
-	void Mesh::setVBOData(int index, const std::vector<glm::vec2>& data) {
+	void Mesh::setVBOData(int index, const std::vector<glm::vec2>& data, bool dynamic) {
 		glBindVertexArray(vao);
 		checkGLError();
 
 		glBindBuffer(GL_ARRAY_BUFFER, vbos[index]);
 		checkGLError();
-		glBufferData(GL_ARRAY_BUFFER, data.size()*sizeof(data[0]), &data[0], GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, data.size()*sizeof(data[0]), &data[0], dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
 		checkGLError();
 		glVertexAttribPointer(index, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
 		checkGLError();
@@ -74,12 +78,7 @@ namespace mesh {
 		checkGLError();
 	}
 
-	void Mesh::release() {
-		glDeleteVertexArrays(1, &vao);
-		glDeleteBuffers(sizeof(vbos)/sizeof(vbos[0]), vbos);
-	}
-
-	std::shared_ptr<Mesh> create(const std::vector<glm::vec2>& positions,const std::vector<glm::vec2>& textureCoords) {
+	std::shared_ptr<Mesh> create(const std::vector<glm::vec2>& positions, const std::vector<glm::vec2>& textureCoords) {
 		std::unique_ptr<Mesh> res = std::make_unique<Mesh>();
 		// Create VAOs and VBOs for sprite
 		glGenVertexArrays(1, &res->vao);
@@ -87,8 +86,8 @@ namespace mesh {
 		glGenBuffers(sizeof(res->vbos)/sizeof(res->vbos[0]), res->vbos);
 		checkGLError();
 		// And set data
-		res->setVBOData(0,positions);
-		res->setVBOData(1,textureCoords);
+		res->setVBOData(0, positions);
+		res->setVBOData(1, textureCoords);
 		return res;
 	}
 
@@ -101,8 +100,8 @@ namespace mesh {
 		glGenBuffers(sizeof(res->vbos)/sizeof(res->vbos[0]), res->vbos);
 		checkGLError();
 		// And set data
-		res->setVBOData(0,positions, numPositionComponents);
-		res->setVBOData(1,textureCoords, numTexCoordComponents);
+		res->setVBOData(0, positions, numPositionComponents);
+		res->setVBOData(1, textureCoords, numTexCoordComponents);
 		return res;
 	}
 
@@ -176,8 +175,39 @@ namespace quad {
 		return mesh::create(POSITIONS, 2, TEXTURE_COORDS, 4);
 	}
 
+	std::shared_ptr<mesh::Mesh> createScreenSizeQuad(float left, float right, float bottom, float top) {
+		const float sx = right-left;
+		const float sy = top-bottom;
+
+		const auto ssqTopLeft        = glm::vec2(-sx*0.5f, -sy*0.5f);
+		const auto ssqTopRight       = glm::vec2(-sx*0.5f,  sy*0.5f);
+		const auto ssqBottomLeft     = glm::vec2( sx*0.5f, -sy*0.5f);
+		const auto ssqBottomRight    = glm::vec2( sx*0.5f,  sy*0.5f);
+		const std::vector<glm::vec2> POSITIONS({
+			ssqBottomLeft,
+			ssqBottomRight,
+			ssqTopRight,
+			ssqBottomLeft,
+			ssqTopRight,
+			ssqTopLeft
+		});
+		static const std::vector<glm::vec2> TEXTURE_COORDS({
+			glm::vec2(1,0),
+			glm::vec2(1,1),
+			glm::vec2(0,1),
+			glm::vec2(1,0),
+			glm::vec2(0,1),
+			glm::vec2(0,0)
+		});
+		return mesh::create(POSITIONS, TEXTURE_COORDS);
+	}
+
 	void draw(const mesh::Mesh& mesh) {
 		mesh::draw(mesh, GL_TRIANGLES, 6);
+	};
+
+	void drawImage(const mesh::Mesh& mesh) {
+		mesh::draw(mesh, GL_TRIANGLE_STRIP, 4);
 	};
 
 }  // End - namespace quad

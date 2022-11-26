@@ -138,8 +138,8 @@ namespace map {
 	Map::Map(const std::string& mapFilename, LoadTextureFuncType loadTexture)
 		: m_clearColor(0.5,0.5,0.5,1)
 		, m_map(std::make_shared<tmx::Map>())
-		, m_tileLayerShader(shaders::tileLayer())
-		, m_imageLayerShader(shaders::imageLayer())	{
+		, m_tileLayerShader(shaders::createTileLayer())
+		, m_imageLayerShader(shaders::createImageLayer())	{
 		// Load map
 		if(false == m_map->load(mapFilename)) {
 			util::ERROR("Failed to load map file: \"" + mapFilename + "\"!");
@@ -165,7 +165,6 @@ namespace map {
 		for(auto layerIndex = 0u; layerIndex < layers.size(); ++layerIndex) {
 			const auto layerType = layers[layerIndex]->getType();
 			if(layerType == tmx::Layer::Type::Tile) {
-
 			} else if(layerType == tmx::Layer::Type::Group) {
 				util::INFO("Creating map layer: index="+std::to_string(layerIndex)+", type=Group, Name=\"" + m_map->getLayers()[layerIndex]->getName() + "\"");
 				util::WARNING("Group layers are not supported in tmx-maps");
@@ -196,10 +195,14 @@ namespace map {
 		for(auto i = 0u; i < layers.size(); ++i) {
 			const auto layerType = layers[i]->getType();
 			if(layerType == tmx::Layer::Type::Tile) {
+				m_layerNames.push_back(layers[i]->getName());
+				m_allLayersMap.push_back({0,m_tileLayers.size()});
 				m_tileLayers.push_back(std::make_shared<TileLayer>(*m_map, i, m_tilesetTextures));
 			} else if(layerType == tmx::Layer::Type::Group) {
 				util::WARNING("Group layers are not supported in tmx-maps");
 			} else if(layerType == tmx::Layer::Type::Image) {
+				m_layerNames.push_back(layers[i]->getName());
+				m_allLayersMap.push_back({1,m_bgLayers.size()});
 				m_bgLayers.push_back(std::make_shared<ImageLayer>(*m_map, i, m_imageTextures));
 			} else if(layerType == tmx::Layer::Type::Object) {
 				util::WARNING("Object layers are not supported in tmx-maps");
@@ -252,9 +255,6 @@ namespace map {
 		shader.setUniform( "offset",	subset.offset.x, subset.offset.y);
 		shader.setUniform( "opacity",	subset.opacity);
 		shader.setUniform( "parallax",	-paralX, paralY);
-
-		assert(subset.mesh != 0);
-		mesh::draw(*subset.mesh, GL_TRIANGLE_STRIP, 4);
 	}
 
 	void drawImageLayer(const Map& map, const ImageLayer& layer, const std::vector<float>& matProjection, const glm::vec2& cameraDelta) {
@@ -265,9 +265,8 @@ namespace map {
 				shader.setUniform("repeat", subset.repeat.x, subset.repeat.y);
 				shader.setUniform("image", 0);
 				subset.texture->bind(0);
-
 				assert(subset.mesh != 0);
-				mesh::draw(*subset.mesh, GL_TRIANGLE_STRIP, 4);
+				quad::draw(*subset.mesh);
 			}
 		});
 	}
@@ -291,7 +290,7 @@ namespace map {
 	}
 
 	void draw(const Map& map, const std::vector<float>& matProjection, const glm::vec2& cameraDelta) {
-		// Clear screen
+		// Clear screen:
 		auto clearColor = map.getClearColor();
 		auto a = clearColor.a;
 		clearColor *= a;
@@ -301,20 +300,22 @@ namespace map {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		checkGLError();
 
-		// Enable alpha blending
+		// Enable alpha blending:
 		glEnable(GL_BLEND);
 		checkGLError();
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		checkGLError();
 
-		for(const auto& layer : map.getImageLayers()) {
-			drawImageLayer(map, *layer, matProjection, cameraDelta);
+		// Render all layers:
+		for(size_t layerId=0; layerId<map.getAllLayers().size(); ++layerId) {
+			auto type = map.getAllLayers()[layerId][0];
+			auto index = map.getAllLayers()[layerId][1];
+			if(type==0) {
+				drawTileLayer(map, *map.getTileLayers()[index], matProjection, cameraDelta);
+			} else if(type==1) {
+				drawImageLayer(map, *map.getImageLayers()[index], matProjection, cameraDelta);
+			}
 		}
-
-		for(auto& layer : map.getTileLayers()) {
-			drawTileLayer(map, *layer, matProjection, cameraDelta);
-		}
-
 	}
 }
 }

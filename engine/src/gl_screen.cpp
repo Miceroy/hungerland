@@ -40,9 +40,8 @@ namespace screen {
 		, m_top(0)
 		, m_shadeFbo() {
 		// Create sprite and screen size quad meshes
-		m_ssqShader = shaders::passtrough();
+		m_ssqShader = shaders::createPasstrough();
 		m_sprite = quad::createSprite(0.5, 0.5);
-		m_ssq = quad::createSprite(0.5, 0.5);
 	}
 
 	void Screen::clear(float r, float g, float b, float a) {
@@ -64,41 +63,20 @@ namespace screen {
 		m_right = right;
 		m_bottom = bottom;
 		m_top = top;
-
-		const float sx = right-left;
-		const float sy = top-bottom;
-
-		const auto ssqTopLeft        = glm::vec2(-sx*0.5f, -sy*0.5f);
-		const auto ssqTopRight       = glm::vec2(-sx*0.5f,  sy*0.5f);
-		const auto ssqBottomLeft     = glm::vec2( sx*0.5f, -sy*0.5f);
-		const auto ssqBottomRight    = glm::vec2( sx*0.5f,  sy*0.5f);
-		const std::vector<glm::vec2> screenSizeQuad({
-			ssqBottomLeft,
-			ssqBottomRight,
-			ssqTopRight,
-			ssqBottomLeft,
-			ssqTopRight,
-			ssqTopLeft
-		});
-
-		mesh::setPositions(*m_ssq, screenSizeQuad);
-
-		m_projection = glm::ortho(m_left,m_right,m_bottom,m_top);
+		m_ssq = quad::createScreenSizeQuad(m_left, m_right, m_bottom, m_top);
+		m_projection = glm::ortho(m_left, m_right, m_bottom, m_top);
 
 		// Create FBOs
 		m_shadeFbo = std::make_unique<graphics::FrameBuffer>();
+		const float sx = right-left;
+		const float sy = top-bottom;
 		m_shadeFbo->addColorTexture(0, std::make_shared<texture::Texture>(std::abs(sx), std::abs(sy), false));
-
-		m_ssqShader->use([&](shader::ShaderPass shader) {
-			shader.setUniform("texture0", 0);
-			shader.setUniformm("P", &m_projection[0][0]);
-		});
 		return m_projection;
 	}
 
 	void Screen::drawSprite(const glm::mat4& matModel, const texture::Texture* texture, const std::vector<shader::Constant>& constants, const std::string& surfaceShader, const std::string& globals) {
-		shader::Shader spriteShader(shader_source::modelProjectionVSSource(), shader_source::textureFSSource("", globals, surfaceShader));
-		spriteShader.use([&](shader::ShaderPass shader) {
+		auto spriteShader = shaders::createSprite(constants, surfaceShader, globals);
+		spriteShader->use([&](shader::ShaderPass shader) {
 			shader.setUniformm("P", &m_projection[0][0]);
 			shader.setUniformm("M", &matModel[0][0]);
 			shader.setUniform("texture0", 0);
@@ -114,6 +92,8 @@ namespace screen {
 
 	void Screen::drawScreenSizeQuad(const texture::Texture& texture) {
 		m_ssqShader->use([&](shader::ShaderPass shader) {
+			shader.setUniformm("P", &m_projection[0][0]);
+			shader.setUniform("texture0", 0);
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, texture.getId());
 			// Render screen size quad
@@ -126,9 +106,9 @@ namespace screen {
 	}
 
 	void FrameBuffer::shade(const std::vector<shader::Constant>& inputConstants, const std::string& fragmentShaderMain, const std::string& globals) {
-		shader::Shader shadeShader(shader_source::shadeVSSource(), shader_source::shadeFSSource(shader::to_string(inputConstants), globals, fragmentShaderMain));
+		auto shadeShader = shaders::createShade(inputConstants, fragmentShaderMain, globals);
 		m_shadeFbo->use([&](){
-			shadeShader.use([&](shader::ShaderPass shader) {
+			shadeShader->use([&](shader::ShaderPass shader) {
 				shader.setUniformm("M", &m_projection[0][0]);
 				auto maxX = std::max(m_right, m_left);
 				auto minX = std::min(m_right, m_left);

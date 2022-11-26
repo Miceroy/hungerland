@@ -64,6 +64,7 @@ namespace shader {
 	///
 	class Shader {
 	public:
+		typedef std::shared_ptr<Shader> Ref;
 		Shader(const std::string& vertexShaderString, const std::string& fragmentShaderString);
 		~Shader();
 
@@ -78,6 +79,10 @@ namespace shader {
 		Shader(const Shader&) = delete;
 		Shader& operator=(const Shader&) = delete;
 	};
+
+	static inline Shader::Ref standardShader(const std::vector<shader::Constant>& constants, const std::string& surfaceShader, const std::string& globals) {
+		return 0;
+	}
 
 
 }

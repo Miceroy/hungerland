@@ -223,15 +223,14 @@ namespace window {
 		};
 
 		while(shouldClose() == false) {
-			// Update
-			updateGame(*this, getDt());
 			// Render
 			glfwMakeContextCurrent(m_window);
-
 			render(*this->m_screen);
-			//m_screen->drawScreenSizeQuad(m_screen->getShadeTexture());
-
 			glfwSwapBuffers(m_window);
+
+			// Update
+			updateGame(*this, getDt());
+
 			// Save screenshot
 			if(m_screenshotFileName.length()>0){
 				int width, height;
@@ -250,8 +249,6 @@ namespace window {
 				stbi_flip_vertically_on_write(false);
 				m_screenshotFileName = "";
 			}
-
-
 			m_inputMap.nextFrame();
 			// Poll other window events.
 			glfwPollEvents();

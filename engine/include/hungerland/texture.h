@@ -35,6 +35,7 @@ namespace texture {
 	///
 	class Texture {
 	public:
+		typedef std::shared_ptr<Texture> Ref;
 		Texture(int width, int height, int nrChannels, const uint8_t* data);
 		Texture(int width, int height, int nrChannels, const float* data);
 		Texture(int width, int height, bool isDepthTexture);

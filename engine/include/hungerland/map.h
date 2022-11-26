@@ -119,6 +119,10 @@ namespace map {
 			return m_clearColor;
 		}
 
+		const auto& getAllLayers() const {
+			return m_allLayersMap;
+		}
+
 	public:
 		std::shared_ptr<shader::Shader>						m_tileLayerShader;
 		std::shared_ptr<shader::Shader>						m_imageLayerShader;
@@ -130,6 +134,8 @@ namespace map {
 		std::vector< std::shared_ptr<texture::Texture> >	m_imageTextures;
 		std::vector< std::shared_ptr<TileLayer> >			m_tileLayers;
 		std::vector< std::shared_ptr<ImageLayer> >			m_bgLayers;
+		std::vector<std::string> m_layerNames;
+		std::vector< std::array<size_t,2> > m_allLayersMap;
 	};
 
 	///
