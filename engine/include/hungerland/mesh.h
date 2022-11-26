@@ -34,6 +34,9 @@ namespace mesh {
 	///
 	/// \brief The Mesh class
 	///
+	/// @ingroup hungerland::mesh
+	/// @author Mikko Romppainen (kajakbros@gmail.com)
+	///
 	struct Mesh {
 		~Mesh() {
 			release();
@@ -64,28 +67,6 @@ namespace mesh {
 	///
 	std::shared_ptr<Mesh> create(const std::vector<float>& positions, size_t numPositionComponents, const std::vector<float>& textureCoords, size_t numTexCoordComponents);
 
-	///
-	/// \brief render
-	/// \param mesh
-	/// \param mode
-	/// \param count
-	///
-	void render(const Mesh& mesh, int mode, unsigned count);
-
-} // End - namespace mesh
-
-namespace quad {
-	///
-	/// \brief create
-	/// \return mesh::Mesh
-	///
-	std::shared_ptr<mesh::Mesh> create();
-
-	///
-	/// \brief render
-	/// \param mesh
-	///
-	void render(const mesh::Mesh& mesh);
 
 	///
 	/// \brief setPositions
@@ -93,6 +74,43 @@ namespace quad {
 	/// \param positions
 	///
 	void setPositions(mesh::Mesh& mesh, const std::vector<glm::vec2>& positions);
+
+	///
+	/// \brief setTexCoords
+	/// \param mesh
+	/// \param texCoords
+	///
+	void setTexCoords(mesh::Mesh& mesh, const std::vector<glm::vec2>& texCoords);
+
+	///
+	/// \brief render
+	/// \param mesh
+	/// \param mode
+	/// \param count
+	///
+	void draw(const Mesh& mesh, int mode, unsigned count);
+
+} // End - namespace mesh
+
+namespace quad {
+	///
+	/// \brief createSprite
+	/// \return mesh::Mesh
+	///
+	std::shared_ptr<mesh::Mesh> createSprite(float halfSizeX, float halfSizeY);
+
+	///
+	/// \brief createImage
+	/// \return mesh::Mesh
+	///
+	std::shared_ptr<mesh::Mesh> createImage(float originX, float originY, float sizeX, float sizeY);
+
+	///
+	/// \brief render
+	/// \param mesh
+	///
+	void draw(const mesh::Mesh& mesh);
+
 } // End - namespace quad
 
 }

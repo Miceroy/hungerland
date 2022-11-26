@@ -40,9 +40,12 @@ namespace graphics {
 
 namespace window {
 	///
-	/// \brief The InputMap class
+	/// \brief The hungerland::window::UserInput class
 	///
-	class InputMap {
+	/// @ingroup hungerland::window
+	/// @author Mikko Romppainen (kajakbros@gmail.com)
+	///
+	class UserInput {
 	public:
 		void setKey(int keyCode, bool state);
 		void nextFrame();
@@ -73,6 +76,12 @@ namespace window {
 		std::map<int, bool>         m_curKeys;
 	};
 
+	///
+	/// \brief The hungerland::window::Window class
+	///
+	/// @ingroup hungerland::window
+	/// @author Mikko Romppainen (kajakbros@gmail.com)
+	///
 	class Window {
 	public:
 		typedef std::function<bool(Window&, float)> UpdateFunc;
@@ -131,7 +140,7 @@ namespace window {
 		///
 		std::shared_ptr<texture::Texture> loadTexture(const std::string& filename);
 
-		const InputMap& getInput() const {
+		const UserInput& getInput() const {
 			return m_inputMap;
 		}
 	private:
@@ -146,7 +155,7 @@ namespace window {
 		GLFWwindow*		m_window;
 
 		std::string		m_screenshotFileName;
-		InputMap		m_inputMap;
+		UserInput		m_inputMap;
 		Screen			m_screen;
 		TextureMap		m_textures;
 

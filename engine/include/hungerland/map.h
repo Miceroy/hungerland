@@ -23,8 +23,6 @@
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 #pragma once
 #include <hungerland/types.h>
-#include <functional>
-#include <memory>
 #include <hungerland/math.h>
 
 namespace tmx {
@@ -48,94 +46,106 @@ namespace hungerland {
 }
 
 namespace hungerland {
+namespace map {
+	struct LayerSubset {
+		float opacity = 1.0f;
+		int2d_t offset = {0,0};
+		bool used = false;
+		//std::vector<float> tintColor;
+		glm::vec2 parallaxFactor = {1,1};
+	};
+
+	struct TileSetSubset : public LayerSubset {
+		std::shared_ptr<mesh::Mesh> mesh;
+		std::shared_ptr<texture::Texture> tileMap;
+		std::shared_ptr<texture::Texture> colorLookup;
+		size2d_t tileSize = {0,0};
+		size2d_t tilesetSize  = {0,0};
+	};
+
+	struct ObjectSubset : public LayerSubset {
+		std::shared_ptr<mesh::Mesh> mesh;
+		std::shared_ptr<texture::Texture> texture;
+		size2d_t size;
+		std::vector<float> objectColor;
+	};
+
+	struct ImageSubset : public LayerSubset {
+		std::shared_ptr<mesh::Mesh> mesh;
+		std::shared_ptr<texture::Texture> texture;
+		std::vector<float> transparentColor;
+		size2d_t size;
+		size2d_t repeat;
+	};
+
+	class TileLayer {
+	public:
+		std::vector<TileSetSubset>	subsets;
+		std::vector< std::vector<int> > tileIds;
+		std::vector< std::vector<int> > tileFlags;
+		TileLayer(const tmx::Map& map, size_t layerIndex, const std::vector< std::shared_ptr<texture::Texture> >& tilesetTextures);
+	};
+
+	class ImageLayer {
+	public:
+		ImageSubset subset;
+		const tmx::ImageLayer* tmxLayer;
+		ImageLayer(const tmx::Map& map, size_t layerIndex, const std::vector< std::shared_ptr<texture::Texture> >& mapTextures);
+	};
+
 	///
-	/// \brief The TileMap class
+	/// \brief The hungerland::map::Map class
 	///
-	class TileMap {
+	class Map {
 	public:
 		typedef std::function<std::shared_ptr<texture::Texture>(const std::string&)> LoadTextureFuncType;
-		TileMap() {}
-		TileMap(const std::string& mapFilename, LoadTextureFuncType loadTexture);
-		~TileMap() {}
-		void render(const std::vector<float>& projectionMatrix, const glm::vec2& cameraDelta) const;
+
+		Map(const std::string& mapFilename, LoadTextureFuncType loadTexture);
 
 		size2d_t getMapSize() const;
 		size2d_t getTileSize() const;
 		const size_t getNumLayers() const;
 		const int getTileId(size_t layer, size_t x, size_t y) const;
 
+		const auto& getImageLayers() const {
+			return m_bgLayers;
+		}
+
+		const auto& getTileLayers() const {
+			return m_tileLayers;
+		}
+
+	public:
+		std::shared_ptr<shader::Shader>						m_tileLayerShader;
+		std::shared_ptr<shader::Shader>						m_imageLayerShader;
+		//std::shared_ptr<mesh::Mesh>							m_mapMesh;
 	private:
-
-		struct LayerSubset {
-			std::shared_ptr<texture::Texture> texture;
-			float opacity = 1.0f;
-			int2d_t offset = {0,0};
-			bool used = false;
-			std::vector<float> tintColor;
-			glm::vec2 parallaxFactor = {1,1};
-		};
-
-		struct TileSubset : public LayerSubset {
-			std::shared_ptr<texture::Texture> lookup;
-			std::shared_ptr<texture::Texture> texture;
-			size2d_t tileSize;
-			size2d_t tilesetCount;
-		};
-
-		struct ObjectSubset : public LayerSubset {
-			std::shared_ptr<mesh::Mesh> mesh;
-			std::shared_ptr<texture::Texture> texture;
-			size2d_t size;
-			std::vector<float> objectColor;
-		};
-
-		struct BackgroundSubset : public LayerSubset {
-			std::shared_ptr<mesh::Mesh> mesh;
-			std::shared_ptr<texture::Texture> texture;
-			std::vector<float> transparentColor;
-			size2d_t size;
-			size2d_t repeat;
-		};
-
-		struct TileLayer {
-		public:
-			std::vector<TileSubset>	subsets;
-			std::vector< std::vector<int> > tileIds;
-			std::vector< std::vector<int> > tileFlags;
-			TileLayer(const tmx::Map& map, size_t layerIndex, const std::vector< std::shared_ptr<texture::Texture> >& tilesetTextures);
-			void render(shader::ShaderPass& shader, mesh::Mesh* mesh) const;
-			~TileLayer();
-		};
-
-		struct BackgroundLayer {
-		public:
-			BackgroundSubset subset;
-			const tmx::ImageLayer* tmxLayer;
-			BackgroundLayer(const tmx::Map& map, size_t layerIndex, const std::vector< std::shared_ptr<texture::Texture> >& mapTextures);
-			void render(shader::ShaderPass& shader, const glm::vec2& cameraDelta) const;
-			~BackgroundLayer();
-		};
 		std::shared_ptr<tmx::Map>							m_map;
 		std::vector< std::shared_ptr<texture::Texture> >	m_tilesetTextures;
 		std::vector< std::shared_ptr<texture::Texture> >	m_imageTextures;
-		std::shared_ptr<mesh::Mesh>				m_mapMesh;
-		std::shared_ptr<shader::Shader>					m_tileShader;
 		std::vector< std::shared_ptr<TileLayer> >			m_tileLayers;
-		std::shared_ptr<shader::Shader>					m_imageShader;
-		std::vector< std::shared_ptr<BackgroundLayer> >		m_bgLayers;
+		std::vector< std::shared_ptr<ImageLayer> >			m_bgLayers;
 	};
 
-	namespace map {
-		///
-		/// \brief map::load
-		/// \param f
-		/// \param mapFile
-		///
-		template<typename MapType, typename Functor>
-		auto load(Functor f, const std::string& mapFile, bool repeat) {
-			return MapType(mapFile, [f,repeat](const std::string& imageFile) {
-				return f.loadTexture(imageFile, repeat);
-			});
-		}
+	///
+	/// \brief hungerland::map::load
+	/// \param f
+	/// \param mapFile
+	///
+	template<typename MapType, typename Functor>
+	std::shared_ptr<MapType> load(Functor f, const std::string& mapFile, bool repeat) {
+		return std::make_shared<MapType>(mapFile, [f,repeat](const std::string& imageFile) {
+			return f.loadTexture(imageFile, repeat);
+		});
 	}
+
+	///
+	/// \brief render
+	/// \param map
+	/// \param projectionMatrix
+	/// \param cameraDelta
+	///
+	void draw(const Map& map, const std::vector<float>& projectionMatrix, const glm::vec2& cameraDelta);
+
+}
 }

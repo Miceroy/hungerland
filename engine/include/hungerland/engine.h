@@ -24,39 +24,32 @@
 #pragma once
 #include <hungerland/types.h>
 
+struct ma_engine;
+
 namespace hungerland {
-namespace texture {
+namespace engine {
 
 	///
-	/// \brief The Texture class
+	/// \brief The hungerland::engine::Engine class
 	///
-	/// @ingroup hungerland::texture
+	/// @ingroup hungerland::engine
 	/// @author Mikko Romppainen (kajakbros@gmail.com)
 	///
-	class Texture {
+	class Engine {
 	public:
-		Texture(int width, int height, int nrChannels, const uint8_t* data);
-		Texture(int width, int height, int nrChannels, const float* data);
-		Texture(int width, int height, bool isDepthTexture);
-		~Texture();
+		Engine();
+		~Engine();
 
-		void bind(unsigned textureIndex);
-		void setRepeat(bool repeat);
-		void setFiltering(bool filter);
-
-		unsigned getId() const;
-		unsigned getWidth() const;
-		unsigned getHeight() const;
+		///
+		/// \brief playSound
+		/// \param fileName
+		///
+		void playSound(const std::string& fileName);
 
 	private:
-		unsigned	m_textureId;	// Texture id
-		unsigned	m_width;
-		unsigned	m_height;
-
-		// Copy not allowed
-		Texture() = delete;
-		Texture(const Texture&) = delete;
-		Texture& operator=(const Texture&) = delete;
+		ma_engine* m_audioEngine;
 	};
 }
-}
+
+} // End - hungerland
+

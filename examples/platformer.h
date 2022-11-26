@@ -22,7 +22,7 @@ namespace platformer {
 	template<typename Functor, typename World, typename Config>
 	void loadScene(Functor f, World& world, size_t index, const Config& cfg) {
 		// Create map layers by map and tileset.
-		world.tileMap = hungerland::map::load<hungerland::TileMap>(f, cfg.mapFiles[index], false);
+		world.tileMap = hungerland::map::load<hungerland::map::Map>(f, cfg.mapFiles[index], false);
 
 		// Load object textures
 		for(const auto& filename : cfg.characterTextureFiles) {
@@ -45,7 +45,7 @@ namespace platformer {
 		}
 
 		// Get map x and y sizes
-		auto mapSize = world.tileMap.getMapSize();
+		auto mapSize = world.tileMap->getMapSize();
 		// and adjust camera and to center y and left of map.
 		world.player.position = math::vec3(5, mapSize.y/2, 0);
 		world.camera.position = math::vec3(0, mapSize.y/2, 0);
@@ -150,7 +150,7 @@ namespace platformer {
 			const float VX_BREAK = 100;
 			const float S = 2.0f;
 			auto checkCollisions = [&world](const Character& body){
-				return checkMapLimits<TileMap,Character>(world.tileMap, body);
+				return checkMapLimits(*world.tileMap, body);
 			};
 
 			glm::vec3 totalForce(0,0,0);
@@ -209,7 +209,7 @@ namespace platformer {
 		template<typename World, typename Player>
 		auto updateObject(const World& world, const Player& body, float vMax, const glm::vec3& totalForce, const glm::vec3& totalImpulse, float dt) {
 			auto checkCollisions = [&world](const Player& body){
-				return checkMapLimits<TileMap,Player>(world.tileMap, body);
+				return checkMapLimits(*world.tileMap, body);
 			};
 			auto [newBody, N, I] = integrateBody(checkCollisions, body, totalForce, totalImpulse, dt);
 			return constraintObject(body, constraintCharacter(newBody, N), vMax, N);
@@ -280,7 +280,7 @@ namespace platformer {
 				return v;
 			};
 
-			auto mapSize = world.tileMap.getMapSize();
+			auto mapSize = world.tileMap->getMapSize();
 			float minCamX	= 15.5f;
 			float maxCamX	= mapSize.x-minCamX;
 			float minCamY	= mapSize.y/2 - 2;
@@ -323,7 +323,7 @@ namespace app {
 		std::string sceneName;
 		std::vector<std::shared_ptr<texture::Texture> > characterTextures;
 		std::vector<std::shared_ptr<texture::Texture> > itemTextures;
-		TileMap tileMap;
+		std::shared_ptr<map::Map> tileMap;
 		GameObject camera;
 		GameObject player;
 		std::vector<GameObject> actors;
@@ -397,7 +397,7 @@ namespace app {
 
 
 		// Offset of half tiles to look at centers of tiles.
-		auto renderMap = [](const TileMap& mapLayers, glm::mat4 matProj, const size2d_t& sizeInPixels, const glm::vec3& cameraPosition) {
+		auto renderMap = [](const map::Map& mapLayers, glm::mat4 matProj, const size2d_t& sizeInPixels, const glm::vec3& cameraPosition) {
 			const auto SCALE_X = mapLayers.getTileSize().x;
 			const auto SCALE_Y = mapLayers.getTileSize().y;
 			const auto PROJ_OFFSET = glm::vec3(SCALE_X/2,SCALE_Y/2,0);
@@ -415,7 +415,7 @@ namespace app {
 			glm::mat4 mat = glm::mat4(1);
 			mat = glm::translate(mat, mapPos);
 			matProj = glm::translate(matProj, PROJ_OFFSET);
-			mapLayers.render(to_vec(matProj*glm::inverse(mat)), cameraDelta);
+			map::draw(mapLayers, to_vec(matProj*glm::inverse(mat)), cameraDelta);
 			return matProj;
 		};
 
@@ -428,14 +428,14 @@ namespace app {
 			glm::mat4 mat = glm::mat4(1);
 			mat = glm::translate(mat, position);
 			mat = glm::scale(mat, glm::vec3(sizeInPixels.x,sizeInPixels.y, 1));
-			screen.drawSprite(to_mat(mat), texture);
+			screen.drawSprite(mat, texture);
 		};
 
 		// Render Tilemap
-		projection = renderMap(state.tileMap, projection, state.tileMap.getTileSize(),
+		projection = renderMap(*state.tileMap, projection, state.tileMap->getTileSize(),
 					state.camera.position);
 		// Render Player
-		renderObject(screen, projection, state.tileMap.getTileSize(), state.camera.position,
+		renderObject(screen, projection, state.tileMap->getTileSize(), state.camera.position,
 					state.player.position, state.characterTextures[0].get());
 	}
 

@@ -25,14 +25,11 @@
 #include <hungerland/framebuffer.h>
 #include <hungerland/texture.h>
 #include <hungerland/mesh.h>
+#include <hungerland/engine.h>
 
 #include <glad/gl.h>		// Include glad
 #include <GLFW/glfw3.h>		// Include glfw
 #include <chrono>			// for Timer
-
-// Miniaudio
-#define MINIAUDIO_IMPLEMENTATION
-#include <miniaudio.h>
 
 // If you want to take screenshots, you must speciy following:
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -43,46 +40,19 @@
 #include <stb_image.h>
 
 namespace hungerland {
-	// Class for static initialization of glfw and miniaudio
-	class Engine {
-	public:
-		Engine() {
-			// Set c++-lambda as error call back function for glfw.
-			glfwSetErrorCallback([](int error, const char* description) {
-				fprintf(stderr, "Error %dm_spriteVao: %s\n", error, description);
-			});
-			// Try to initialize glfw
-			if (!glfwInit()) {
-				throw std::runtime_error("Failed to initialize OpenGL!");
-				return;
-			}
-
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-			glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-			glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-			//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-			//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-			//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-			//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
-			//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
-
-			auto result = ma_engine_init(NULL, &audioEngine);
-			if (result != MA_SUCCESS) {
-				throw std::runtime_error("Failed to initialize audio engine!");
-				return;
-			}
-		}
-		~Engine() {
-			ma_engine_uninit(&audioEngine);
-
-			// Terminate glfw
-			glfwTerminate();
+namespace window {
+	struct Image {
+		Image(const std::string& fileName) {
+			data = stbi_load(fileName.c_str(), &size.x, &size.y, &bpp, 0);
 		}
 
-		ma_engine audioEngine;
+		~Image() {
+			stbi_image_free(data);
+		}
+
+		int2d_t size = {0, 0};
+		int bpp = 0;
+		uint8_t *data = 0;
 	};
 
 	class Timer {
@@ -105,11 +75,7 @@ namespace hungerland {
 		float totalTime;
 	};
 
-	std::unique_ptr<Engine> g_engine;
-
-	namespace window {
-
-	bool InputMap::keyState(const std::map<int, bool>& keyMap, int keyCode) {
+	bool UserInput::keyState(const std::map<int, bool>& keyMap, int keyCode) {
 		auto it = keyMap.find(keyCode);
 		if(it == keyMap.end()){
 			return false;
@@ -117,37 +83,40 @@ namespace hungerland {
 		return it->second;
 	}
 
-	void InputMap::setKey(int keyCode, bool state) {
+	void UserInput::setKey(int keyCode, bool state) {
 		m_curKeys[keyCode] = state;
 	}
 
-	void InputMap::nextFrame() {
+	void UserInput::nextFrame() {
 		m_prevKeys = m_curKeys;
 	}
 
-	int InputMap::getKeyState(int keyCode) const {
+	int UserInput::getKeyState(int keyCode) const {
 		if(keyState(m_curKeys,keyCode) ){
 			return true;
 		}
 		return false;
 	}
 
-	int InputMap::getKeyPressed(int keyCode) const {
+	int UserInput::getKeyPressed(int keyCode) const {
 		return keyState(m_curKeys,keyCode) && !keyState(m_prevKeys,keyCode);
 	}
 
-	int InputMap::getKeyReleased(int keyCode) const {
+	int UserInput::getKeyReleased(int keyCode) const {
 		return !keyState(m_curKeys,keyCode) && keyState(m_prevKeys,keyCode);
 	};
+
+
+	std::unique_ptr<engine::Engine> g_engine;
 
 	Window::Window(size2d_t size, const std::string& title)
 		: m_size(size)
 		, m_window(0)
 	{
-		if(!g_engine) g_engine = std::make_unique<Engine>();
+		if(!g_engine) g_engine = std::make_unique<engine::Engine>();
 		// Create window and check that creation was succesful.
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-		m_window = glfwCreateWindow(m_size.x+2, m_size.y+2, title.c_str(), 0, 0);
+		m_window = glfwCreateWindow(m_size.x, m_size.y, title.c_str(), 0, 0);
 		if (!m_window) {
 			throw std::runtime_error("Failed to create window!");
 			return;
@@ -180,6 +149,7 @@ namespace hungerland {
 		glViewport(0, 0, screenWidth, screenHeight);
 		m_screen = std::make_unique<screen::FrameBuffer>();
 		m_screen->setScreen(0, screenWidth, 0, screenHeight);
+
 	}
 
 	Window::~Window() {
@@ -227,23 +197,12 @@ namespace hungerland {
 		if(it != m_textures.end()) {
 			return it->second;
 		}
-		int width,height,bpp;
-		width = height = bpp = 0;
-		uint8_t *data = stbi_load(filename.c_str(), &width, &height, &bpp, 0);
-		if(data==0) {
-			return 0;
-		}
-		auto res = m_textures[filename] = std::make_shared<texture::Texture>(width, height, bpp, data);
-		stbi_image_free(data);
-		return res;
+		Image image(filename);
+		return m_textures[filename] = std::make_shared<texture::Texture>(image.size.x, image.size.y, image.bpp, image.data);
 	}
 
 	void Window::playSound(const std::string& fileName){
-		auto result = ma_engine_play_sound(&g_engine->audioEngine, fileName.c_str(), NULL);
-		if (result != MA_SUCCESS) {
-			throw std::runtime_error("Failed to play sound!");
-			return;
-		}
+		g_engine->playSound(fileName);
 	}
 
 	int Window::run(UpdateFunc updateGame, RenderFunc render) {
@@ -268,6 +227,7 @@ namespace hungerland {
 			updateGame(*this, getDt());
 			// Render
 			glfwMakeContextCurrent(m_window);
+
 			render(*this->m_screen);
 			//m_screen->drawScreenSizeQuad(m_screen->getShadeTexture());
 
@@ -290,6 +250,8 @@ namespace hungerland {
 				stbi_flip_vertically_on_write(false);
 				m_screenshotFileName = "";
 			}
+
+
 			m_inputMap.nextFrame();
 			// Poll other window events.
 			glfwPollEvents();

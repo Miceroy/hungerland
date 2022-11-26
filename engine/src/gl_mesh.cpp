@@ -106,7 +106,7 @@ namespace mesh {
 		return res;
 	}
 
-	void render(const Mesh& mesh, int mode, unsigned count) {
+	void draw(const Mesh& mesh, int mode, unsigned count) {
 		// Bind
 		glBindVertexArray(mesh.vao);
 		checkGLError();
@@ -127,37 +127,58 @@ namespace mesh {
 		checkGLError();
 	};
 
+	void setPositions(mesh::Mesh& mesh, const std::vector<glm::vec2>& positions) {
+		mesh.setVBOData(0,positions);
+	}
+
+	void setTexCoords(mesh::Mesh& mesh, const std::vector<glm::vec2>& texCoords) {
+		mesh.setVBOData(1, texCoords);
+	}
+
 } // End - namespace mesh
 
 namespace quad {
-std::shared_ptr<mesh::Mesh> create() {
-	static const std::vector<glm::vec2> POSITIONS({
-		glm::vec2( 0.5f, -0.5f),
-		glm::vec2( 0.5f,  0.5f),
-		glm::vec2(-0.5f,  0.5f),
-		glm::vec2( 0.5f, -0.5f),
-		glm::vec2(-0.5f,  0.5f),
-		glm::vec2(-0.5f, -0.5f)
-	});
-	static const std::vector<glm::vec2> TEXTURE_COORDS({
-		glm::vec2(1,1),
-		glm::vec2(1,0),
-		glm::vec2(0,0),
-		glm::vec2(1,1),
-		glm::vec2(0,0),
-		glm::vec2(0,1)
-	});
-	return mesh::create(POSITIONS,TEXTURE_COORDS);
-}
 
-void render(const mesh::Mesh& mesh) {
-	mesh::render(mesh, GL_TRIANGLES, 6);
-};
+	std::shared_ptr<mesh::Mesh> createSprite(float halfSizeX, float halfSizeY) {
+		static const std::vector<glm::vec2> POSITIONS({
+			glm::vec2( halfSizeX, -halfSizeX),
+			glm::vec2( halfSizeX,  halfSizeX),
+			glm::vec2(-halfSizeX,  halfSizeX),
+			glm::vec2( halfSizeX, -halfSizeX),
+			glm::vec2(-halfSizeX,  halfSizeX),
+			glm::vec2(-halfSizeX, -halfSizeX)
+		});
+		static const std::vector<glm::vec2> TEXTURE_COORDS({
+			glm::vec2(1,0),
+			glm::vec2(1,1),
+			glm::vec2(0,1),
+			glm::vec2(1,0),
+			glm::vec2(0,1),
+			glm::vec2(0,0)
+		});
+		return mesh::create(POSITIONS,TEXTURE_COORDS);
+	}
 
 
-void setPositions(mesh::Mesh& mesh, const std::vector<glm::vec2>& positions) {
-	mesh.setVBOData(0,positions);
-}
+	std::shared_ptr<mesh::Mesh> createImage(float originX, float originY, float sizeX, float sizeY){
+		std::vector<float> POSITIONS = {
+			originX,			originY,
+			originX + sizeX,	originY,
+			originX,			originY + sizeY,
+			originX + sizeX,	originY + sizeY,
+		};
+		std::vector<float> TEXTURE_COORDS = {
+			0, 0,	 0.0f,  0.0f,
+			1, 0,	sizeX,  0.0f,
+			0, 1,	 0.0f, sizeY,
+			1, 1,	sizeX, sizeY,
+		};
+		return mesh::create(POSITIONS, 2, TEXTURE_COORDS, 4);
+	}
+
+	void draw(const mesh::Mesh& mesh) {
+		mesh::draw(mesh, GL_TRIANGLES, 6);
+	};
 
 }  // End - namespace quad
 

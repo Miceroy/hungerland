@@ -31,14 +31,14 @@ namespace texture {
 }
 namespace graphics {
 
-	/**
-	 * Class for FrameBuffer.
-	 *
-	 * Framebuffer consists of several textures (render textures). Each texture must be same size.
-	 *
-	 * @ingroup engine
-	 * @author Mikko Romppainen (mikko.romppainen@kajak.fi)
-	 */
+	///
+	/// \brief The hungerland::engine::FrameBuffer class
+	///
+	/// Framebuffer consists of several textures (render textures). Each texture must be same size.
+	///
+	/// @ingroup hungerland::graphics
+	/// @author Mikko Romppainen (kajakbros@gmail.com)
+	///
 	class FrameBuffer
 	{
 	public:

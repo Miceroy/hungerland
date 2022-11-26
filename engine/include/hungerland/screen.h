@@ -41,6 +41,9 @@ namespace screen {
 	///
 	/// \brief The Screen class
 	///
+	/// @ingroup hungerland::screen
+	/// @author Mikko Romppainen (kajakbros@gmail.com)
+	///
 	class Screen  {
 	public:
 		Screen();
@@ -72,7 +75,7 @@ namespace screen {
 		/// \param surfaceShader
 		/// \param globals
 		///
-		void drawSprite(const std::vector< std::vector<float> >& transform, const texture::Texture* texture,  const std::vector<shader::Constant>& constants={}, const std::string& surfaceShader="", const std::string& globals="");
+		void drawSprite(const glm::mat4& transform, const texture::Texture* texture, const std::vector<shader::Constant>& constants={}, const std::string& surfaceShader="", const std::string& globals="");
 
 		///
 		/// \brief drawScreenSizeQuad
@@ -101,6 +104,9 @@ namespace screen {
 
 	///
 	/// \brief The FrameBuffer class
+	///
+	/// @ingroup hungerland::screen
+	/// @author Mikko Romppainen (kajakbros@gmail.com)
 	///
 	class FrameBuffer : public Screen  {
 	public:

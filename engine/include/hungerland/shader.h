@@ -36,6 +36,12 @@ namespace shader {
 
 	std::string to_string(const Constants& inputConstants);
 
+	///
+	/// \brief The ShaderPass class
+	///
+	/// @ingroup hungerland::shader
+	/// @author Mikko Romppainen (kajakbros@gmail.com)
+	///
 	class ShaderPass {
 	public:
 		ShaderPass(const Shader& shader);
@@ -50,6 +56,12 @@ namespace shader {
 		const Shader& m_shader;
 	};
 
+	///
+	/// \brief The Shader class
+	///
+	/// @ingroup hungerland::shader
+	/// @author Mikko Romppainen (kajakbros@gmail.com)
+	///
 	class Shader {
 	public:
 		Shader(const std::string& vertexShaderString, const std::string& fragmentShaderString);
