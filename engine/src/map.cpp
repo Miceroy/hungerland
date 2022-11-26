@@ -130,7 +130,8 @@ namespace map {
 
 	/// Map
 	Map::Map(const std::string& mapFilename, LoadTextureFuncType loadTexture)
-		: m_map(std::make_shared<tmx::Map>())
+		: m_clearColor(0.5,0.5,0.5,1)
+		, m_map(std::make_shared<tmx::Map>())
 		, m_tileLayerShader(shaders::tileLayer())
 		, m_imageLayerShader(shaders::imageLayer())	{
 		// Load map
@@ -139,6 +140,10 @@ namespace map {
 		}
 		util::INFO("Loaded Tiled map: " + mapFilename);
 
+		m_clearColor.r = m_map->getBackgroundColour().r/255.0f;
+		m_clearColor.g = m_map->getBackgroundColour().g/255.0f;
+		m_clearColor.b = m_map->getBackgroundColour().b/255.0f;
+		m_clearColor.a = m_map->getBackgroundColour().a/255.0f;
 		// Create tileset textures from map tilesets:
 		for(const auto& ts : m_map->getTilesets()) {
 			auto texture = loadTexture(ts.getImagePath());
@@ -276,16 +281,20 @@ namespace map {
 	}
 
 	void draw(const Map& map, const std::vector<float>& matProjection, const glm::vec2& cameraDelta) {
+		// Clear screen
+		auto clearColor = map.getClearColor();
+		auto a = clearColor.a;
+		clearColor *= a;
+		clearColor.a = a;
+		glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+		checkGLError();
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		checkGLError();
+
+		// Enable alpha blending
 		glEnable(GL_BLEND);
 		checkGLError();
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		checkGLError();
-		//glBlendEquation(GL_FUNC_ADD);
-		//checkGLError();
-
-		glClearColor(0,0,0,1);
-		checkGLError();
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		checkGLError();
 
 		for(const auto& layer : map.getImageLayers()) {
@@ -295,7 +304,6 @@ namespace map {
 		for(auto& layer : map.getTileLayers()) {
 			drawTileLayer(map, *layer, matProjection, cameraDelta);
 		}
-
 
 	}
 }

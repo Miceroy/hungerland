@@ -115,11 +115,16 @@ namespace map {
 			return m_tileLayers;
 		}
 
+		auto getClearColor() const {
+			return m_clearColor;
+		}
+
 	public:
 		std::shared_ptr<shader::Shader>						m_tileLayerShader;
 		std::shared_ptr<shader::Shader>						m_imageLayerShader;
 		//std::shared_ptr<mesh::Mesh>							m_mapMesh;
 	private:
+		glm::vec4											m_clearColor;
 		std::shared_ptr<tmx::Map>							m_map;
 		std::vector< std::shared_ptr<texture::Texture> >	m_tilesetTextures;
 		std::vector< std::shared_ptr<texture::Texture> >	m_imageTextures;
