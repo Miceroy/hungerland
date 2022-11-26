@@ -65,16 +65,26 @@ namespace platformer {
 		auto posX = obj.position.x;
 		auto posY = obj.position.y;
 
-		// Compute collision normal from overlapping objects.
+		// Ckeck map limits
 		glm::vec3 normal(0);
 		if(posX < 0)			normal.x =  1;
 		if(posX > mapSize.x)	normal.x = -1;
 		if(posY < 0)			normal.y =  1;
 		if(posY > mapSize.y)	normal.y = -1;
-
 		if(glm::dot(normal,normal) > 0) {
 			return glm::length(obj.velocity)*glm::normalize(normal);
 		}
+
+		// Check map layer collisions
+		if(tileMap.getTileId(2, posX-1, posY))	normal.x =  1;
+		if(tileMap.getTileId(2, posX+1, posY))	normal.x = -1;
+		if(tileMap.getTileId(2, posX, posY-1))	normal.y =  1;
+		if(tileMap.getTileId(2, posX, posY+1))	normal.y = -1;
+		if(glm::dot(normal,normal) > 0) {
+			return glm::length(obj.velocity)*glm::normalize(normal);
+
+		}
+
 		return glm::vec3(0);
 	}
 

@@ -160,7 +160,7 @@ namespace quad {
 	}
 
 
-	std::shared_ptr<mesh::Mesh> createImage(float originX, float originY, float sizeX, float sizeY){
+	std::shared_ptr<mesh::Mesh> createImage(float originX, float originY, float sizeX, float sizeY, float texScaleX, float texScaleY){
 		std::vector<float> POSITIONS = {
 			originX,			originY,
 			originX + sizeX,	originY,
@@ -168,10 +168,10 @@ namespace quad {
 			originX + sizeX,	originY + sizeY,
 		};
 		std::vector<float> TEXTURE_COORDS = {
-			0, 0,	 0.0f,  0.0f,
-			1, 0,	sizeX,  0.0f,
-			0, 1,	 0.0f, sizeY,
-			1, 1,	sizeX, sizeY,
+			0,					0,		0.0f,	0.0f,
+			texScaleX,			0,		sizeX,	0.0f,
+			0,			texScaleY,		0.0f,	sizeY,
+			texScaleX,	texScaleY,		sizeX,	sizeY,
 		};
 		return mesh::create(POSITIONS, 2, TEXTURE_COORDS, 4);
 	}

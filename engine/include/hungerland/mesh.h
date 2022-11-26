@@ -103,7 +103,7 @@ namespace quad {
 	/// \brief createImage
 	/// \return mesh::Mesh
 	///
-	std::shared_ptr<mesh::Mesh> createImage(float originX, float originY, float sizeX, float sizeY);
+	std::shared_ptr<mesh::Mesh> createImage(float originX, float originY, float sizeX, float sizeY, float texScaleX=1, float texScaleY=1);
 
 	///
 	/// \brief render

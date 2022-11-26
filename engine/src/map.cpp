@@ -40,40 +40,43 @@ namespace hungerland {
 namespace map {
 	/// TileLayer
 	TileLayer::TileLayer(const tmx::Map& map, size_t layerIndex, const std::vector<std::shared_ptr<texture::Texture> >& tilesetTextures) {
-		const auto& mapSize = map.getTileCount();
 		const auto& tilesets = map.getTilesets();
 		const tmx::TileLayer& layer = *dynamic_cast<tmx::TileLayer*>(map.getLayers()[layerIndex].get());
+		const auto& layerSize =  layer.getSize();// map.getTileCount();
 		tileIds = util::gridNM(layer.getSize().x,layer.getSize().y, 0);
 		tileFlags = util::gridNM(layer.getSize().x,layer.getSize().y, 0);
+		util::INFO("Creating map layer: index="+std::to_string(layerIndex)+", type=TileLayer, Name=\"" + layer.getName() + "\"");
 		for(auto tilesetId = 0u; tilesetId < tilesets.size(); ++tilesetId) {
 			// Check each tile ID to see if it falls in the current tile set
 			const auto& tileSet = tilesets[tilesetId];
 			const auto& layerTiles = layer.getTiles();
-			std::vector<float> mapPixels;
+			std::vector<float> layerPixels;
 			bool tsUsed = false;
-			for(auto y = 0u; y < mapSize.y; ++y) {
-				for(auto x = 0u; x < mapSize.x; ++x) {
-					auto tileIndex = y * mapSize.x + x;
+			for(auto ly = 0u; ly < layerSize.y; ++ly) {
+				for(auto lx = 0u; lx < layerSize.x; ++lx) {
+					auto tileIndex = ly * layerSize.x + lx;
 					auto layerTileID = layerTiles[tileIndex].ID;
 					auto firstGID = tileSet.getFirstGID();
 					auto lastGID = firstGID + tileSet.getTileCount() - 1;
 					if(layerTileID >= firstGID && layerTileID <= lastGID) {
 						auto tileId = layerTileID - firstGID + 1;
-						tileIds[tileIds.size()-y-1][x] = tileId;
-						tileFlags[tileIds.size()-y-1][x] = layerTiles[tileIndex].flipFlags;
+						if(tileId > 0) {
+							tileIds[tileIds.size()-ly-1][lx] = tileId;
+							tileFlags[tileIds.size()-ly-1][lx] = layerTiles[tileIndex].flipFlags;
+						}
 						// Red channel: making sure to index relative to the tileset
-						mapPixels.push_back(tileId);
+						layerPixels.push_back(tileId);
 						// Green channel: tile flips are performed on the shader
-						mapPixels.push_back(layerTiles[tileIndex].flipFlags);
-						mapPixels.push_back(0);
-						mapPixels.push_back(0);
+						layerPixels.push_back(layerTiles[tileIndex].flipFlags);
+						layerPixels.push_back(0);
+						layerPixels.push_back(0);
 						tsUsed = true;
 					} else {
 						// Pad with empty space
-						mapPixels.push_back(0);
-						mapPixels.push_back(0);
-						mapPixels.push_back(0);
-						mapPixels.push_back(0);
+						layerPixels.push_back(0);
+						layerPixels.push_back(0);
+						layerPixels.push_back(0);
+						layerPixels.push_back(0);
 					}
 				}
 			}
@@ -88,7 +91,7 @@ namespace map {
 				subset.offset.x = layer.getOffset().x;
 				subset.offset.y = layer.getOffset().y;
 				subset.tileMap = tilesetTextures[tilesetId];
-				subset.colorLookup = std::make_shared<texture::Texture>(mapSize.x, mapSize.y, 4, &mapPixels[0]);
+				subset.colorLookup = std::make_shared<texture::Texture>(layerSize.x, layerSize.y, 4, &layerPixels[0]);
 				subset.tileSize.x =  tileSet.getTileSize().x;
 				subset.tileSize.y = tileSet.getTileSize().y;
 				subset.tilesetSize.x = tileSet.getColumnCount();
@@ -107,6 +110,7 @@ namespace map {
 	/// ImageLayer
 	ImageLayer::ImageLayer(const tmx::Map& map, size_t layerIndex, const std::vector< std::shared_ptr<texture::Texture> >& imageTextures) {
 		const tmx::ImageLayer& layer = *dynamic_cast<tmx::ImageLayer*>(map.getLayers()[layerIndex].get());
+		util::INFO("Creating map layer: index="+std::to_string(layerIndex)+", type=ImageLayer, Name=\"" + layer.getName() + "\"");
 		subset.used = true;
 		subset.opacity = layer.getOpacity();
 		subset.texture = imageTextures[layerIndex];
@@ -125,7 +129,9 @@ namespace map {
 		// Create mesh
 		auto texture = imageTextures[layerIndex];
 		auto bounds = map.getBounds();
-		subset.mesh = quad::createImage(bounds.left, bounds.top, bounds.width, bounds.height);
+		float texScaleX = float(bounds.width)/float(subset.texture->getWidth());
+		float texScaleY = float(bounds.height)/float(subset.texture->getHeight());
+		subset.mesh = quad::createImage(bounds.left, bounds.top, bounds.width, bounds.height, texScaleX, texScaleY);
 	}
 
 	/// Map
@@ -161,12 +167,14 @@ namespace map {
 			if(layerType == tmx::Layer::Type::Tile) {
 
 			} else if(layerType == tmx::Layer::Type::Group) {
+				util::INFO("Creating map layer: index="+std::to_string(layerIndex)+", type=Group, Name=\"" + m_map->getLayers()[layerIndex]->getName() + "\"");
 				util::WARNING("Group layers are not supported in tmx-maps");
 			} else if(layerType == tmx::Layer::Type::Image) {
 				const tmx::ImageLayer& layer = *dynamic_cast<tmx::ImageLayer*>(m_map->getLayers()[layerIndex].get());
 				auto imgPath = layer.getImagePath();
 				if(imgPath.size() > 0) {
 					auto texture = loadTexture(imgPath);
+					texture->setRepeat(true);
 					if(texture == 0) {
 						util::ERROR("Failed to load image texture file: \"" + imgPath + "\"!");
 					}
@@ -176,8 +184,10 @@ namespace map {
 					m_imageTextures.push_back(0);
 				}
 			} else if(layerType == tmx::Layer::Type::Object) {
+				util::INFO("Creating map layer: index="+std::to_string(layerIndex)+", type=Object, Name=\"" + m_map->getLayers()[layerIndex]->getName() + "\"");
 				util::WARNING("Object layers are not supported in tmx-maps");
 			} else {
+				util::INFO("Creating map layer: index="+std::to_string(layerIndex)+", type=Unknown, Name=\"" + m_map->getLayers()[layerIndex]->getName() + "\"");
 				util::ERROR("Unknown layer type in tmx-map!");
 			}
 		}
