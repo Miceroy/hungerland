@@ -2,9 +2,10 @@
 #include <hungerland/texture.h>
 #include <assert.h>
 #include <stdexcept>
+#include <glad/gl.h>		// Include glad
 
 namespace hungerland {
-
+namespace graphics {
 namespace {
 	const GLenum COLOR_ATTACHMENT_LOOKUP[] = {
 		GL_COLOR_ATTACHMENT0,
@@ -30,11 +31,11 @@ FrameBuffer::~FrameBuffer() {
 }
 
 
-void FrameBuffer::addColorTexture( int index, std::shared_ptr<Texture> tex ) {
+void FrameBuffer::addColorTexture( int index, std::shared_ptr<texture::Texture> tex ) {
 	assert( index >= 0 && index < sizeof(COLOR_ATTACHMENT_LOOKUP)/sizeof(COLOR_ATTACHMENT_LOOKUP[0]) );
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fboId);
 	//glBindRenderbuffer(GL_RENDERBUFFER, m_rboId);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, COLOR_ATTACHMENT_LOOKUP[index], GL_TEXTURE_2D, tex->getTextureId(), 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, COLOR_ATTACHMENT_LOOKUP[index], GL_TEXTURE_2D, tex->getId(), 0);
 	if( GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER) ) {
 		throw std::runtime_error("Texture could not add texture to framebuffer!");
 	}
@@ -50,9 +51,9 @@ void FrameBuffer::addColorTexture( int index, std::shared_ptr<Texture> tex ) {
 }
 
 
-void FrameBuffer::setDepthTexture(std::shared_ptr<Texture> tex) {
+void FrameBuffer::setDepthTexture(std::shared_ptr<texture::Texture> tex) {
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fboId);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex->getTextureId(), 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, tex->getId(), 0);
 	if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER)) {
 		throw std::runtime_error("Texture could not add texture to framebuffer!");
 	}
@@ -74,11 +75,11 @@ void FrameBuffer::unbind() {
 }
 
 
-std::shared_ptr<Texture> FrameBuffer::getTexture(int index) const {
-	assert( index >= 0 && index < int(m_textures.size()) );
-	return m_textures[index];
+const texture::Texture& FrameBuffer::getTexture(int index) const {
+	assert( index >= 0 && index < int(m_textures.size()) &&  m_textures[index] != 0);
+	return *m_textures[index];
 }
-
+}
 } // End - mikroplot
 
 

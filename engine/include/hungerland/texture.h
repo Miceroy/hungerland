@@ -1,26 +1,33 @@
 #pragma once
-#include <stdint.h>
-#include <memory>
+#include <hungerland/types.h>
 
 namespace hungerland {
+namespace texture {
 
 	class Texture {
 	public:
-		typedef std::shared_ptr<Texture> Ptr;
-		Texture() : m_textureId(-1), m_width(0), m_height(0) {}
-		Texture(int width, int height, int nrChannels, const uint8_t* data, bool repeat = false);
-		Texture(int width, int height, int nrChannels, const float* data, bool repeat = false);
+		Texture(int width, int height, int nrChannels, const uint8_t* data);
+		Texture(int width, int height, int nrChannels, const float* data);
 		Texture(int width, int height, bool isDepthTexture);
 		~Texture();
 
-		uint32_t getTextureId() const;
-		auto getWidth() const {return m_width;}
-		auto getHeight() const {return m_height;}
+		void bind(unsigned textureIndex);
+		void setRepeat(bool repeat);
+		void setFiltering(bool filter);
+
+		unsigned getId() const;
+		unsigned getWidth() const;
+		unsigned getHeight() const;
 
 	private:
-		uint32_t				m_textureId;	// Texture id
-		int m_width;
-		int m_height;
-	};
+		unsigned	m_textureId;	// Texture id
+		unsigned	m_width;
+		unsigned	m_height;
 
+		// Copy not allowed
+		Texture() = delete;
+		Texture(const Texture&) = delete;
+		Texture& operator=(const Texture&) = delete;
+	};
+}
 }

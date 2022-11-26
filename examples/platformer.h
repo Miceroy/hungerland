@@ -321,8 +321,8 @@ namespace app {
 	template<typename GameObject>
 	struct World {
 		std::string sceneName;
-		std::vector<std::shared_ptr<Texture> > characterTextures;
-		std::vector<std::shared_ptr<Texture> > itemTextures;
+		std::vector<std::shared_ptr<texture::Texture> > characterTextures;
+		std::vector<std::shared_ptr<texture::Texture> > itemTextures;
 		TileMap tileMap;
 		GameObject camera;
 		GameObject player;
@@ -383,17 +383,16 @@ namespace app {
 	/// \param state
 	/// \param time
 	///
-	void render(Window& window, const app::World<GameObject>& state, float time) {
+	void render(screen::Screen& screen, const app::World<GameObject>& state) {
 		static const auto MAP_OFFSET = glm::vec3(0.5, 0.5, 0);
 
 		using namespace platformer;
-		window.setTitle(state.sceneName);
-		window.setClearColor();
 
 		// Aseta origo ruudun vasempaan alareunaan:
 		const auto SIZE_X = float(SCREEN_SIZE_X/2);
 		const auto SIZE_Y = float(SCREEN_SIZE_Y/2);
-		window.setScreen(-SIZE_X, SIZE_X , SIZE_Y, -SIZE_Y);
+		screen.setScreen(-SIZE_X, SIZE_X , SIZE_Y, -SIZE_Y);
+		screen.clear(0, 0, 0, 0);
 		glm::mat4 projection = glm::ortho(-SIZE_X, SIZE_X , SIZE_Y, -SIZE_Y);
 
 
@@ -420,7 +419,7 @@ namespace app {
 			return matProj;
 		};
 
-		auto renderObject = [](Window& window, const glm::mat4& matProj, const size2d_t& sizeInPixels, const glm::vec3& cameraPosition, glm::vec3 position, const Texture* texture) {
+		auto renderObject = [](screen::Screen& screen, const glm::mat4& matProj, const size2d_t& sizeInPixels, const glm::vec3& cameraPosition, glm::vec3 position, const texture::Texture* texture) {
 			auto camPos = cameraPosition;
 			position.x = position.x - camPos.x + MAP_OFFSET.x; // Flip x and offset.
 			position.y = camPos.y - position.y + MAP_OFFSET.y; // Flip y and offset.
@@ -429,14 +428,14 @@ namespace app {
 			glm::mat4 mat = glm::mat4(1);
 			mat = glm::translate(mat, position);
 			mat = glm::scale(mat, glm::vec3(sizeInPixels.x,sizeInPixels.y, 1));
-			window.drawSprite(to_mat(mat), texture);
+			screen.drawSprite(to_mat(mat), texture);
 		};
 
 		// Render Tilemap
 		projection = renderMap(state.tileMap, projection, state.tileMap.getTileSize(),
 					state.camera.position);
 		// Render Player
-		renderObject(window, projection, state.tileMap.getTileSize(), state.camera.position,
+		renderObject(screen, projection, state.tileMap.getTileSize(), state.camera.position,
 					state.player.position, state.characterTextures[0].get());
 	}
 
@@ -451,7 +450,7 @@ namespace app {
 			return GameObject{};
 		}
 
-		std::function<std::shared_ptr<Texture>(const std::string&,bool)> loadTexture;
+		std::function<std::shared_ptr<texture::Texture>(const std::string&,bool)> loadTexture;
 
 	}; // end - struct Functor
 

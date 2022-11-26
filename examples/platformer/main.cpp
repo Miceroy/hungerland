@@ -30,26 +30,37 @@ namespace my_game_app {
 		ITEM_TEXTURE_FILES
 	};
 }
+#include <hungerland/texture.h>
 
 // Main function
 int main() {
 	using namespace my_game_app;
+	using namespace hungerland;
 
 	// Create application window and run it.
-	Window window(WINDOW_SIZE_X, WINDOW_SIZE_Y, "");
+	window::Window window({WINDOW_SIZE_X, WINDOW_SIZE_Y}, "");
 	app::Functor f;
 	typedef app::World<app::GameObject> World;
 	f.loadTexture = [&window](const std::string& fileName, bool repeat) {
-		return window.loadTexture(fileName, repeat);
+		auto texture = window.loadTexture(fileName);
+		if(repeat) {
+			texture->setRepeat(true);
+		}
+		return texture;
 	};
+	window.setTitle(GAME_LONG_NAME);
 
 	auto state = app::reset<World>(f, GAME_LONG_NAME, CONFIG);
-	return window.run([&](Window& window, float dt, float time) {
-		platformer::player::Input playerInput;
+	return window.run([&state,&f](window::Window& window, float dt) {
+		auto& input = window.getInput();
 		// Configure input buttons:
-		playerInput.dx			= window.getKeyState(KEY_RIGHT)				- window.getKeyState(KEY_LEFT);
-		playerInput.accelerate	= window.getKeyState(KEY_LEFT_SHIFT)		+ window.getKeyState(KEY_RIGHT_SHIFT);
-		playerInput.wantJump	= window.getKeyPressed(KEY_LEFT_CONTROL)	+ window.getKeyPressed(KEY_RIGHT_CONTROL);
-		app::render(window, platformer::update(state, f, playerInput, dt), time);
+		platformer::player::Input playerInput;
+		playerInput.dx			= input.getKeyState(window::KEY_RIGHT)			- input.getKeyState(window::KEY_LEFT);
+		playerInput.accelerate	= input.getKeyState(window::KEY_LEFT_SHIFT)		+ input.getKeyState(window::KEY_RIGHT_SHIFT);
+		playerInput.wantJump	= input.getKeyPressed(window::KEY_LEFT_CONTROL)	+ input.getKeyPressed(window::KEY_RIGHT_CONTROL);
+		state = platformer::update(state, f, playerInput, dt);
+		return true;
+	}, [&state,&window](screen::Screen& screen) {
+		app::render(screen, state);
 	});
 }

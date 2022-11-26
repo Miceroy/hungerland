@@ -1,11 +1,12 @@
 #pragma once
-#include <glad/gl.h>		// Include glad
 #include <vector>
 #include <memory>
 
 namespace hungerland {
-
+namespace texture {
 	class Texture;
+}
+namespace graphics {
 
 	/**
 	 * Class for FrameBuffer.
@@ -18,14 +19,7 @@ namespace hungerland {
 	class FrameBuffer
 	{
 	public:
-		/**
-		 * Default constructor.
-		 */
 		FrameBuffer();
-
-		/**
-		 * Destructor.
-		 */
 		virtual ~FrameBuffer();
 
 		template<typename F>
@@ -41,32 +35,37 @@ namespace hungerland {
 		 * There is no error check for adding of textures to same index, so be carefull not to
 		 * add textures with same index.
 		 *
-		 * @param	index	Index where to add texture.
-		 * @param	tex		Texture to be added.
+		 * @param	index		Index where to add texture.
+		 * @param	texture		Texture to be added.
 		 */
-		void addColorTexture( int index, std::shared_ptr<Texture> tex );
+		void addColorTexture( int index, std::shared_ptr<texture::Texture> texture);
 
-		void setDepthTexture(std::shared_ptr<Texture> tex);
+		///
+		/// \brief setDepthTexture
+		/// \param texture
+		///
+		void setDepthTexture(std::shared_ptr<texture::Texture> texture);
 
 		/**
 		 * Returns texture by index, which is added by addTexture.
 		 *
-		 * @param	index	Index where to return texture.
+		 * @param	index		Index where to return texture.
 		 *
 		 */
-		std::shared_ptr<Texture> getTexture(int index) const;
+		const texture::Texture& getTexture(int index) const;
 
 	private:
+
 		void bind();
 		void unbind();
-		std::vector< std::shared_ptr<Texture> >		m_textures;
-		std::vector<GLenum>			m_drawBuffers;
-		GLuint						m_fboId;
-		unsigned int                m_rboId;
+		std::vector< std::shared_ptr<texture::Texture> >		m_textures;
+		std::vector<unsigned>			m_drawBuffers;
+		unsigned						m_fboId;
+		unsigned                 m_rboId;
 
-		// Non-allowed methods (declared but not defined anywhere, result link error if used)
-		FrameBuffer( const FrameBuffer& );
-		FrameBuffer& operator =( const FrameBuffer& );
+		// Copy not allowed
+		FrameBuffer(const FrameBuffer&) = delete;
+		FrameBuffer& operator=(const FrameBuffer&) = delete;
 	};
-
+}
 } // End - mikroplot

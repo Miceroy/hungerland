@@ -1,12 +1,15 @@
 #pragma once
-#include <hungerland/window.h>
+#include <hungerland/math.h>
+#include <hungerland/shader.h>
+#include <memory>
 #include <string>
-#include <glad/gl.h>
-#include <hungerland/gl_utils.h>
+#include <vector>
+#include <memory>
 
 namespace hungerland {
-	namespace shaders {
-		static std::string projectionVSSource(){
+	namespace graphics {
+
+		static inline std::string projectionVSSource(){
 			return
 				std::string("#version 330 core\n") +
 				std::string("layout (location = 0) in vec2 inPosition;\n") +
@@ -20,7 +23,7 @@ namespace hungerland {
 				std::string("}");
 		}
 
-		static std::string modelProjectionVSSource() {
+		static inline std::string modelProjectionVSSource() {
 			return
 				std::string("#version 330 core\n") +
 				std::string("layout (location = 0) in vec2 inPosition;\n") +
@@ -35,7 +38,7 @@ namespace hungerland {
 				std::string("}");
 		}
 
-		static std::string shadeVSSource(){
+		static inline std::string shadeVSSource(){
 			return std::string(
 				std::string("#version 330 core\n") +
 				std::string("layout (location = 0) in vec2 inPosition;\n") +
@@ -58,7 +61,7 @@ namespace hungerland {
 				std::string("}"));
 		};
 
-		static std::string shadeFSSource(const std::string& inputUniforms, const std::string& globals, const std::string& fragmentShaderMain) {
+		static inline std::string shadeFSSource(const std::string& inputUniforms, const std::string& globals, const std::string& fragmentShaderMain) {
 			return std::string(
 				std::string("#version 330 core\n") +
 				std::string("out vec4 FragColor;\n") +
@@ -78,7 +81,7 @@ namespace hungerland {
 				std::string("\n}\n"));
 		};
 
-		static std::string textureFSSource(const std::string& inputUniforms, const std::string& globals, const std::string& shader){
+		static inline std::string textureFSSource(const std::string& inputUniforms, const std::string& globals, const std::string& shader){
 			return
 				std::string("#version 330 core\n") +
 				std::string("in vec2 texCoord;\n") +
@@ -91,108 +94,38 @@ namespace hungerland {
 				shader +
 				std::string("gl_FragData[0] = color;\n}\n");
 		}
-
-		static std::string constants(const std::vector<Constant>& inputConstants) {
-			std::string res;
-			for(auto& c : inputConstants){
-				auto& name = c.first;
-				auto& val = c.second;
-				if(val.size() == 1){
-					res += "uniform float "+name+";\n";
-				} else if(val.size() == 2){
-					res += "uniform vec2 "+name+";\n";
-				} else if(val.size() == 3){
-					res += "uniform vec3 "+name+";\n";
-				} else if(val.size() == 4){
-					res += "uniform vec4 "+name+";\n";
-				} else {
-					assert(0); // Invalid value length. Must be between 1 to 4
-				}
-			}
-			return res;
-		}
 	}
 
-	namespace mesh{
-		static inline std::unique_ptr<Mesh> create(const std::vector<vec2>& positions,const std::vector<vec2>& textureCoords) {
-			std::unique_ptr<Mesh> res = std::make_unique<Mesh>();
-			// Create VAOs and VBOs for sprite
-			glGenVertexArrays(1, &res->vao);
-			checkGLError();
-			glGenBuffers(sizeof(res->vbos)/sizeof(res->vbos[0]), res->vbos);
-			checkGLError();
-			// And set data
-			res->setVBOData(0,positions);
-			res->setVBOData(1,textureCoords);
-			return res;
-		}
-
-		static inline std::shared_ptr<Mesh> create(const std::vector<float>& positions, size_t numPositionComponents,
-											const std::vector<float>& textureCoords, size_t numTexCoordComponents) {
-			std::shared_ptr<Mesh> res = std::make_shared<Mesh>();
-			// Create VAOs and VBOs for sprite
-			glGenVertexArrays(1, &res->vao);
-			checkGLError();
-			glGenBuffers(sizeof(res->vbos)/sizeof(res->vbos[0]), res->vbos);
-			checkGLError();
-			// And set data
-			res->setVBOData(0,positions, numPositionComponents);
-			res->setVBOData(1,textureCoords, numTexCoordComponents);
-			return res;
-		}
-
-		static inline void render(const Mesh& mesh, GLenum mode, GLsizei count) {
-			// Bind
-			glBindVertexArray(mesh.vao);
-			checkGLError();
-			int numVertexArrys = sizeof(mesh.vbos)/sizeof(mesh.vbos[0]);
-			for(size_t i=0; i<numVertexArrys; ++i){
-				glEnableVertexAttribArray(i);
-				checkGLError();
+	/*namespace mesh {
+		///
+		/// \brief The Mesh class
+		///
+		struct Mesh {
+			~Mesh() {
+				release();
 			}
-			// Draw
-			glDrawArrays(mode, 0, count);
-			checkGLError();
-			// Unbind
-			for(size_t i=0; i<numVertexArrys; ++i){
-				glDisableVertexAttribArray(i);
-				checkGLError();
-			}
-			glBindVertexArray(0);
-			checkGLError();
+			unsigned int  vao;
+			unsigned int  vbos[2];
+
+			void setVBOData(int index, const std::vector<float>& data, size_t numComponents);
+			void setVBOData(int index, const std::vector<glm::vec2>& data);
+			void release();
 		};
+
+		std::shared_ptr<Mesh> create(const std::vector<glm::vec2>& positions,const std::vector<glm::vec2>& textureCoords);
+
+		std::shared_ptr<Mesh> create(const std::vector<float>& positions, size_t numPositionComponents, const std::vector<float>& textureCoords, size_t numTexCoordComponents);
+
+		void render(const Mesh& mesh, int mode, unsigned count);
 	}
 
 	namespace quad {
-		static inline std::unique_ptr<mesh::Mesh> create() {
-			static const std::vector<vec2> POSITIONS({
-				vec2( 0.5f, -0.5f),
-				vec2( 0.5f,  0.5f),
-				vec2(-0.5f,  0.5f),
-				vec2( 0.5f, -0.5f),
-				vec2(-0.5f,  0.5f),
-				vec2(-0.5f, -0.5f)
-			});
-			static const std::vector<vec2> TEXTURE_COORDS({
-				vec2(1,1),
-				vec2(1,0),
-				vec2(0,0),
-				vec2(1,1),
-				vec2(0,0),
-				vec2(0,1)
-			});
-			return mesh::create(POSITIONS,TEXTURE_COORDS);
-		}
+		std::shared_ptr<mesh::Mesh> create();
 
-		static inline void render(const mesh::Mesh& mesh) {
-			mesh::render(mesh, GL_TRIANGLES, 6);
-		};
+		void render(const mesh::Mesh& mesh);
 
+		void setPositions(mesh::Mesh& mesh, const std::vector<glm::vec2>& positions);
 
-		static inline void setPositions(mesh::Mesh& mesh, const std::vector<vec2>& positions) {
-			mesh.setVBOData(0,positions);
-		}
-
-	}
+	}*/
 
 }
