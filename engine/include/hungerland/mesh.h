@@ -114,10 +114,16 @@ namespace quad {
 	std::shared_ptr<mesh::Mesh> createScreenSizeQuad(float left, float right, float bottom, float top);
 
 	///
-	/// \brief render
+	/// \brief draw
 	/// \param mesh
 	///
 	void draw(const mesh::Mesh& mesh);
+
+	///
+	/// \brief drawImage
+	/// \param mesh
+	///
+	void drawImage(const mesh::Mesh& mesh);
 
 } // End - namespace quad
 

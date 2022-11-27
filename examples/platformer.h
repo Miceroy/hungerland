@@ -7,6 +7,90 @@ namespace math = glm;
 using namespace hungerland;
 
 namespace platformer {
+
+	namespace phys {
+		///
+		/// \brief integrateBody
+		/// \param getCollision
+		/// \param body
+		/// \param F
+		/// \param I
+		/// \param dt
+		///
+		template<typename Body, typename CollisionFunc>
+		auto integrateBody(const CollisionFunc& getCollision, const Body& body, const glm::vec3& F, const glm::vec3& I, float dt) {
+			auto euler = [&](Body body, float dt) {
+				// Integrate velocity from forces and position from velocity:
+				auto i = dt * (F + body.acceleration);
+				body.velocity += I + i;
+				body.position += body.velocity * dt;
+				return std::make_tuple(body, getCollision(body));
+			};
+			auto resI = glm::vec3(0);
+			auto deltaTime = dt;
+			auto resBody = body;
+			for(size_t i=0; i<5; ++i){
+				const float step = 0.5*deltaTime;
+				auto [newBody, collision] = euler(body, deltaTime);
+				if(glm::dot(collision,collision) > 0) {
+					// If collides at first step, set impulse:
+					if(glm::dot(resI,resI)==0 ) resI = collision;
+					// Adjust delta time to be smaller:
+					deltaTime -= step;
+				} else {
+					// Not collides, adjust delta time to be bigger:
+					deltaTime += step;
+					resBody = newBody;
+				}
+				// Done?
+				if(deltaTime>dt || dt < 0.001f) {
+					break;
+				}
+			}
+			auto resN = glm::dot(resI,resI) > 0.0f ? glm::normalize(resI) : resI;
+			return std::make_tuple(resBody, resN, resI);
+		}
+
+		///
+		/// \brief updateBodyImpact
+		/// \param body
+		/// \param N
+		///
+		template<typename Body>
+		auto updateBodyImpact(Body body, const glm::vec3& N) {
+			// Collision response after integrate:
+			if(glm::length(N) > 0){
+				body.velocity = glm::reflect(body.velocity, glm::normalize(N));
+				body.acceleration.x = 0;
+				body.acceleration.y = 0;
+			}
+			return body;
+		};
+
+		///
+		/// \brief limitVelocity
+		/// \param body
+		/// \param max
+		///
+		template<typename Body>
+		auto limitVelocity(Body body, glm::vec3 max) {
+			// Clamp to VX:
+			auto speedX = body.velocity.x;
+			if(std::abs(speedX) > max.x) {
+				body.velocity.x = std::signbit(speedX) ? -max.x : max.x;
+			}
+			auto speedY = body.velocity.y;
+			if(std::abs(speedY) > max.y) {
+				body.velocity.y = std::signbit(speedY) ? -max.y : max.y;
+			}
+			auto speedZ = body.velocity.z;
+			if(std::abs(speedZ) > max.z) {
+				body.velocity.z = std::signbit(speedZ) ? -max.z : max.z;
+			}
+			return body;
+		};
+	}
+
 	/// CONFIG:
 	static const size_t	SCREEN_SIZE_X = 1920;
 	static const size_t	SCREEN_SIZE_Y = 1080;
@@ -51,181 +135,6 @@ namespace platformer {
 		world.camera.position = math::vec3(0, mapSize.y/2, 0);
 	}
 
-	///
-	/// \brief checkMapLimits checks object collision against map limits.
-	/// \param tileMap
-	/// \param obj
-	/// \return Return 0 if no collision or normal and velocity coded in single vector.
-	///
-	template<typename TileMap, typename Object>
-	glm::vec3 checkMapLimits(const TileMap& tileMap, const Object& obj) {
-		auto mapSize = tileMap.getMapSize();
-		mapSize.x -= 1;
-		mapSize.y -= 1;
-		auto posX = obj.position.x;
-		auto posY = obj.position.y;
-
-		// Ckeck map limits
-		glm::vec3 normal(0);
-		if(posX < 0)			normal.x =  1;
-		if(posX > mapSize.x)	normal.x = -1;
-		if(posY < 0)			normal.y =  1;
-		if(posY > mapSize.y)	normal.y = -1;
-		if(glm::dot(normal,normal) > 0) {
-			return glm::length(obj.velocity)*glm::normalize(normal);
-		}
-
-		// Check map layer collisions
-		if(tileMap.getTileId(2, posX-1, posY))	normal.x =  1;
-		if(tileMap.getTileId(2, posX+1, posY))	normal.x = -1;
-		if(tileMap.getTileId(2, posX, posY-1))	normal.y =  1;
-		if(tileMap.getTileId(2, posX, posY+1))	normal.y = -1;
-		if(glm::dot(normal,normal) > 0) {
-			return glm::length(obj.velocity)*glm::normalize(normal);
-
-		}
-
-		return glm::vec3(0);
-	}
-
-	namespace phys {
-
-		template<typename Body, typename CollisionFunc>
-		auto integrateBody(const CollisionFunc& getCollision, const Body& body, const glm::vec3& F, const glm::vec3& I, float dt) {
-			auto euler = [&](Body body, float dt) {
-				// Integrate velocity from forces and position from velocity:
-				auto i = dt * (F + body.acceleration);
-				body.velocity += I + i;
-				body.position += body.velocity * dt;
-				return std::make_tuple(body, getCollision(body));
-			};
-			auto resI = glm::vec3(0);
-			auto deltaTime = dt;
-			auto resBody = body;
-			for(size_t i=0; i<5; ++i){
-				const float step = 0.5*deltaTime;
-				auto [newBody, collision] = euler(body, deltaTime);
-				if(glm::dot(collision,collision) > 0) {
-					// If collides at first step, set impulse:
-					if(glm::dot(resI,resI)==0 ) resI = collision;
-					// Adjust delta time to be smaller:
-					deltaTime -= step;
-				} else {
-					// Not collides, adjust delta time to be bigger:
-					deltaTime += step;
-					resBody = newBody;
-				}
-				if(deltaTime>dt || dt < 0.001f) {
-					break;
-				}
-			}
-			auto resN = glm::dot(resI,resI) > 0.0f ? glm::normalize(resI) : resI;
-			return std::make_tuple(resBody, resN, resI);
-		}
-
-		template<typename Player>
-		auto limitVelocityX(Player body, float maxX) {
-			// Clamp to VX:
-			auto speedX = body.velocity.x;
-			if(fabsf(speedX) > maxX) {
-				body.velocity.x = (speedX/fabsf(speedX))*maxX;
-			}
-			return body;
-		};
-
-		template<typename Character>
-		auto constraintCharacter(Character character, const glm::vec3& N) {
-			// Collision response after integrate:
-			character.grounded |= N.y > 0;
-			character.topped |= N.y < 0;
-			character.hitWall  |= (N.x != 0);
-			if(character.hitWall) {
-				character.velocity.x = 0;
-				character.velocity.y = 0;
-				character.acceleration.x = 0;
-				character.acceleration.y = 0;
-			}
-			if(character.topped) {
-				character.velocity.y = 0;
-				character.acceleration.x = 0;
-				character.acceleration.y = 0;
-			}
-			return character;
-		};
-
-		template<typename World, typename Character>
-		auto updateCharacter(const World& world, Character character, float vMax, float dx, bool accelerate, bool groundJump, bool wallJump, float dt) {
-			const float PY = 15;
-			const float VX_ACC = 100;
-			const float VX_BREAK = 100;
-			const float S = 2.0f;
-			auto checkCollisions = [&world](const Character& body){
-				return checkMapLimits(*world.tileMap, body);
-			};
-
-			glm::vec3 totalForce(0,0,0);
-			glm::vec3 totalImpulse(0,0,0);
-			float accX = 0;
-			if(groundJump) {
-				totalImpulse.y = PY;
-				character.acceleration.y = 0;
-			} else if (wallJump) {
-				totalImpulse.y = PY;
-				totalImpulse.x = -dx*PY;
-				character.acceleration.x = 0;
-				character.acceleration.y = 0;
-			} else if(dx != 0) {
-				accX = VX_ACC * dx * ((character.grounded && accelerate) ? S : 1);
-				totalForce.x = accX;
-				character.acceleration.x = 0;
-			} else {
-				character.acceleration.x = 0;
-				auto vx = character.velocity.x;
-				if(fabsf(vx) > 1) {
-					auto dir = vx/fabsf(vx);
-					totalForce.x = -vx*VX_BREAK;
-				} else if(fabsf(vx) > 0) {
-					totalForce.x = -vx*VX_BREAK;
-				}
-			}
-
-			auto [newBody, N, I] = integrateBody(checkCollisions , character, totalForce, totalImpulse, dt);
-			if(groundJump) {
-				newBody.velocity.x = -totalImpulse.x*dt;
-			} if (wallJump) {
-			} else if(dx != 0) {
-				character.acceleration.x -= accX;
-			}
-
-			return constraintCharacter(limitVelocityX(newBody, vMax),N);
-		};
-
-		template<typename Player>
-		auto constraintObject(Player old, Player object, float vMax, const glm::vec3& N) {
-			// If grounded, set velocity y=0:
-			if(object.grounded) {
-				object.velocity.y = 0;
-				object.acceleration.y = 0;
-			}
-			if(object.hitWall) {
-				object.velocity.x = 0;
-				object.velocity.y = 0;
-				object.acceleration.x = 0;
-				object.acceleration.y = 0;
-			}
-			return limitVelocityX(object, vMax);
-		};
-
-		template<typename World, typename Player>
-		auto updateObject(const World& world, const Player& body, float vMax, const glm::vec3& totalForce, const glm::vec3& totalImpulse, float dt) {
-			auto checkCollisions = [&world](const Player& body){
-				return checkMapLimits(*world.tileMap, body);
-			};
-			auto [newBody, N, I] = integrateBody(checkCollisions, body, totalForce, totalImpulse, dt);
-			return constraintObject(body, constraintCharacter(newBody, N), vMax, N);
-		};
-
-	}
 	namespace player {
 		struct Input {
 			float dx;
@@ -235,6 +144,94 @@ namespace platformer {
 
 		const float VX_MAX = 6;
 		const float G = -20;
+
+
+
+		template<typename Character>
+		auto updateCharacterImpact(Character character, const glm::vec3& N) {
+			// Collision response after integrate:
+			character = phys::updateBodyImpact(character, N);
+			character.grounded	|= N.y > 0;
+			character.topped	|= N.y < 0;
+			character.hitWall	|= N.x == 1;
+			character.hitWall	|= N.x == -1;
+			return character;
+		};
+
+		template<typename World, typename Character>
+		auto updateCharacter(const World& world, Character character, float vMax, float dx, bool accelerate, bool groundJump, bool wallJump, float dt) {
+			const float PY = 10;
+			const float VX_ACC = 100;
+			const float VX_BREAK = 100;
+			const float S = 2.0f;
+			auto checkCollisions = [&world](const Character& body) {
+				return world.tileMap->checkCollision(body.position, glm::vec3(0.5, 0.5, 0.0), glm::length(body.velocity));
+			};
+
+			// First, Integrate body movement by environment forces:
+			{
+				auto totalForce = glm::vec3(0,0,0);
+				auto totalImpulse = glm::vec3(0,0,0);
+				const glm::vec3 gravity(0, G, 0);
+				totalForce += gravity;
+				// Intergate:
+				auto [newBody, N, I] = phys::integrateBody(checkCollisions , character, totalForce, totalImpulse, dt);
+				newBody = phys::limitVelocity(newBody, glm::vec3(vMax ,vMax, 0));
+				newBody = updateCharacterImpact(newBody, N);
+				character = newBody;
+			}
+
+			// Constraint Character:
+			{
+				if(character.grounded) {
+					// If grounded, set velocity y=0:
+					character.velocity.y = 0;
+				}
+				if(character.hitWall) {
+					// If hitWall, set velocity y=0:
+					character.velocity.x = 0;
+				}
+			}
+
+			// Then apply character movement:
+			{
+				auto totalForce = glm::vec3(0,0,0);
+				auto totalImpulse = glm::vec3(0,0,0);
+				if(groundJump) {
+					// Gound jump list/right
+					totalImpulse.y = PY;
+					character.acceleration.y = 0;
+				} else if (wallJump) {
+					// Wall jump list/right
+					totalImpulse.y = PY;
+					totalImpulse.x = -dx*PY;
+					character.acceleration.x = 0;
+					character.acceleration.y = 0;
+					character.velocity.x = 0;
+					character.velocity.y = 0;
+				} else if(dx != 0) {
+					// Move list/right:
+					totalForce.x = VX_ACC * dx * ((character.grounded && accelerate) ? S : 1);
+					character.acceleration.x = 0;
+				} else {
+					// Friction x:
+					character.acceleration.x = 0;
+					auto vx = character.velocity.x;
+					if(fabsf(vx) > 1) {
+						auto dir = vx/fabsf(vx);
+						totalForce.x = -vx*VX_BREAK;
+					} else if(fabsf(vx) > 0) {
+						totalForce.x = -vx*VX_BREAK;
+					}
+				}
+				// Intergate:
+				auto [newBody, N, I] = phys::integrateBody(checkCollisions , character, totalForce, totalImpulse, dt);
+				newBody = phys::limitVelocity(newBody, glm::vec3(vMax ,vMax, 0));
+				newBody = updateCharacterImpact(newBody, N);
+				return newBody;
+			}
+		};
+
 		///
 		/// \brief 	world::player::update
 		/// \param ui
@@ -245,23 +242,12 @@ namespace platformer {
 		template<typename Input, typename World, typename Player>
 		auto update(const Input& ui, const World& world, Player player, float dt) {
 			// Add player update by input:
-
 			bool groundJump	= ui.wantJump && player.grounded;
 			bool wallJump	= ui.wantJump && player.hitWall;
-
-			// Add gravity and integrate player:
-			glm::vec3 totalForce(0);
-			glm::vec3 totalImpulse(0);
-			// Integrate body movement by environment forces:
-			{
-				const glm::vec3 gravity(0, G, 0);
-				totalForce += gravity;
-			}
 			player.grounded = false;
 			player.topped = false;
 			player.hitWall = false;
-			player = phys::updateObject(world, player, VX_MAX, totalForce, totalImpulse, dt);
-			return phys::updateCharacter(world, player, VX_MAX, ui.dx, ui.accelerate, groundJump, wallJump, dt);
+			return updateCharacter(world, player, VX_MAX, ui.dx, ui.accelerate, groundJump, wallJump, dt);
 		};
 	}
 
@@ -407,34 +393,28 @@ namespace app {
 
 
 		// Offset of half tiles to look at centers of tiles.
-		auto renderMap = [](const map::Map& mapLayers, glm::mat4 matProj, const size2d_t& sizeInPixels, const glm::vec3& cameraPosition) {
-			const auto SCALE_X = mapLayers.getTileSize().x;
-			const auto SCALE_Y = mapLayers.getTileSize().y;
-			const auto PROJ_OFFSET = glm::vec3(SCALE_X/2,SCALE_Y/2,0);
-
-			auto camPos = cameraPosition;
-			camPos.y =  mapLayers.getMapSize().y-camPos.y-1; // Flip y and offset
-			auto mapPos = camPos + MAP_OFFSET;  // And offset y
-			mapPos.x *= SCALE_X;
-			mapPos.y *= SCALE_Y;
-
-			glm::vec2 cameraDelta(0);
-			cameraDelta.x = camPos.x * SCALE_X;
-			cameraDelta.y = camPos.y * SCALE_Y;
-
+		auto renderMapLayers = [](const map::Map& mapLayers, glm::mat4 matProj, const size2d_t& sizeInPixels, glm::vec3 cameraPosition) {
+			// Flip camera y and offset
+			cameraPosition.y =  mapLayers.getMapSize().y-cameraPosition.y-1;
+			// And offset
 			glm::mat4 mat = glm::mat4(1);
-			mat = glm::translate(mat, mapPos);
-			matProj = glm::translate(matProj, PROJ_OFFSET);
+			const glm::vec3 SCALE = {mapLayers.getTileSize().x, mapLayers.getTileSize().y, 1};
+			auto mapScreenPos = SCALE * (cameraPosition + MAP_OFFSET);
+			mat = glm::translate(mat, mapScreenPos);
+			matProj = glm::translate(matProj, 0.5f * SCALE);
+			glm::vec2 cameraDelta = cameraPosition * SCALE;
 			map::draw(mapLayers, to_vec(matProj*glm::inverse(mat)), cameraDelta);
 			return matProj;
 		};
 
-		auto renderObject = [](screen::Screen& screen, const glm::mat4& matProj, const size2d_t& sizeInPixels, const glm::vec3& cameraPosition, glm::vec3 position, const texture::Texture* texture) {
-			auto camPos = cameraPosition;
-			position.x = position.x - camPos.x + MAP_OFFSET.x; // Flip x and offset.
-			position.y = camPos.y - position.y + MAP_OFFSET.y; // Flip y and offset.
-			position.x *= sizeInPixels.x;
-			position.y *= sizeInPixels.y;
+		auto renderSprite = [](screen::Screen& screen, const glm::mat4& matProj, const size2d_t& sizeInPixels, const glm::vec3& cameraPosition, glm::vec3 position, const texture::Texture* texture) {
+			// Flip x and y
+			position.x = position.x - cameraPosition.x;
+			position.y = cameraPosition.y - position.y;
+			// And offset
+			position += MAP_OFFSET;
+			position *= glm::vec3(sizeInPixels.x, sizeInPixels.y, 1);
+
 			glm::mat4 mat = glm::mat4(1);
 			mat = glm::translate(mat, position);
 			mat = glm::scale(mat, glm::vec3(sizeInPixels.x,sizeInPixels.y, 1));
@@ -442,10 +422,11 @@ namespace app {
 		};
 
 		// Render Tilemap
-		projection = renderMap(*state.tileMap, projection, state.tileMap->getTileSize(),
+		projection = renderMapLayers(*state.tileMap, projection, state.tileMap->getTileSize(),
 					state.camera.position);
 		// Render Player
-		renderObject(screen, projection, state.tileMap->getTileSize(), state.camera.position,
+		renderSprite(screen, projection, state.tileMap->getTileSize(),
+					state.camera.position,
 					state.player.position, state.characterTextures[0].get());
 	}
 

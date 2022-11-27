@@ -24,6 +24,7 @@
 #pragma once
 #include <hungerland/types.h>
 #include <hungerland/math.h>
+#include <map>
 
 namespace tmx {
 	class TileLayer;
@@ -80,6 +81,7 @@ namespace map {
 
 	class TileLayer {
 	public:
+		std::vector<size2d_t>	objects;
 		std::vector<TileSetSubset>	subsets;
 		std::vector< std::vector<int> > tileIds;
 		std::vector< std::vector<int> > tileFlags;
@@ -105,6 +107,7 @@ namespace map {
 		size2d_t getMapSize() const;
 		size2d_t getTileSize() const;
 		const size_t getNumLayers() const;
+		size_t getLayerIndex(const std::string& name) const;
 		const int getTileId(size_t layer, size_t x, size_t y) const;
 
 		const auto& getImageLayers() const {
@@ -123,6 +126,9 @@ namespace map {
 			return m_allLayersMap;
 		}
 
+		glm::vec3 checkCollision(const glm::vec3 position, glm::vec3 halfSize, float speed) const;
+
+
 	public:
 		std::shared_ptr<shader::Shader>						m_tileLayerShader;
 		std::shared_ptr<shader::Shader>						m_imageLayerShader;
@@ -134,7 +140,7 @@ namespace map {
 		std::vector< std::shared_ptr<texture::Texture> >	m_imageTextures;
 		std::vector< std::shared_ptr<TileLayer> >			m_tileLayers;
 		std::vector< std::shared_ptr<ImageLayer> >			m_bgLayers;
-		std::vector<std::string> m_layerNames;
+		std::map<std::string, size_t> m_layerNames;
 		std::vector< std::array<size_t,2> > m_allLayersMap;
 	};
 

@@ -40,12 +40,33 @@ namespace hungerland {
 namespace map {
 	/// TileLayer
 	TileLayer::TileLayer(const tmx::Map& map, size_t layerIndex, const std::vector<std::shared_ptr<texture::Texture> >& tilesetTextures) {
-		const auto& tilesets = map.getTilesets();
 		const tmx::TileLayer& layer = *dynamic_cast<tmx::TileLayer*>(map.getLayers()[layerIndex].get());
-		const auto& layerSize =  layer.getSize();// map.getTileCount();
+		util::INFO("Creating map layer: index="+std::to_string(layerIndex)+", type=TileLayer, Name=\"" + layer.getName() + "\"");
+		const auto& layerSize =  layer.getSize();
+		const auto& layerTiles = layer.getTiles();
+		const auto& tilesets = map.getTilesets();
 		tileIds = util::gridNM(layer.getSize().x,layer.getSize().y, 0);
 		tileFlags = util::gridNM(layer.getSize().x,layer.getSize().y, 0);
-		util::INFO("Creating map layer: index="+std::to_string(layerIndex)+", type=TileLayer, Name=\"" + layer.getName() + "\"");
+		// Create objects from non zero tile ids:
+		for(auto ly = 0u; ly < layerSize.y; ++ly) {
+			for(auto lx = 0u; lx < layerSize.x; ++lx) {
+				auto tileIndex = ly * layerSize.x + lx;
+				auto layerTile = layerTiles[tileIndex];
+				if(layerTile.ID > 0) {
+					tileIds[layerSize.y-ly-1][lx] = layerTile.ID;
+					tileFlags[tileIds.size()-ly-1][lx] = layerTile.flipFlags;
+					objects.push_back({lx,layerSize.y-ly-1});
+				}
+			}
+		}
+		util::INFO("Layer index="+std::to_string(layerIndex)+" has "+std::to_string(objects.size())+" objects");
+		for(const auto& o : objects){
+			util::INFO("x=" + std::to_string(o.x) + "y=" + std::to_string(o.y));
+
+		}
+
+		std::vector<float> layerPixels;
+		bool tsUsed = false;
 		for(auto tilesetId = 0u; tilesetId < tilesets.size(); ++tilesetId) {
 			// Check each tile ID to see if it falls in the current tile set
 			const auto& tileSet = tilesets[tilesetId];
@@ -60,10 +81,6 @@ namespace map {
 					auto lastGID = firstGID + tileSet.getTileCount() - 1;
 					if(layerTileID >= firstGID && layerTileID <= lastGID) {
 						auto tileId = layerTileID - firstGID + 1;
-						if(tileId > 0) {
-							tileIds[tileIds.size()-ly-1][lx] = tileId;
-							tileFlags[tileIds.size()-ly-1][lx] = layerTiles[tileIndex].flipFlags;
-						}
 						// Red channel: making sure to index relative to the tileset
 						layerPixels.push_back(tileId);
 						// Green channel: tile flips are performed on the shader
@@ -192,16 +209,19 @@ namespace map {
 		}
 
 		// Create a drawable object for each layer:
+		std::vector<std::string> layerNames;
 		for(auto i = 0u; i < layers.size(); ++i) {
 			const auto layerType = layers[i]->getType();
 			if(layerType == tmx::Layer::Type::Tile) {
-				m_layerNames.push_back(layers[i]->getName());
+				m_layerNames[layers[i]->getName()] = i;
+				layerNames.push_back(layers[i]->getName());
 				m_allLayersMap.push_back({0,m_tileLayers.size()});
 				m_tileLayers.push_back(std::make_shared<TileLayer>(*m_map, i, m_tilesetTextures));
 			} else if(layerType == tmx::Layer::Type::Group) {
 				util::WARNING("Group layers are not supported in tmx-maps");
 			} else if(layerType == tmx::Layer::Type::Image) {
-				m_layerNames.push_back(layers[i]->getName());
+				m_layerNames[layers[i]->getName()] = i;
+				layerNames.push_back(layers[i]->getName());
 				m_allLayersMap.push_back({1,m_bgLayers.size()});
 				m_bgLayers.push_back(std::make_shared<ImageLayer>(*m_map, i, m_imageTextures));
 			} else if(layerType == tmx::Layer::Type::Object) {
@@ -222,12 +242,117 @@ namespace map {
 		return {s.x, s.y};
 	}
 
+	glm::vec3 Map::checkCollision(const glm::vec3 position, glm::vec3 halfSize, float speed) const {
+		// Ckeck map limits
+		auto mapSize = getMapSize();
+		mapSize.x -= 1;
+		mapSize.y -= 1;
+		float posX = position.x;
+		float posY = position.y;
+		glm::vec3 normal(0);
+		if(posX < 0)			normal.x =  1;
+		if(posX > mapSize.x)	normal.x = -1;
+		if(posY < 0)			normal.y =  1;
+		if(posY > mapSize.y)	normal.y = -1;
+		if(glm::dot(normal,normal) > 0) {
+			return speed*glm::normalize(normal);
+		}
+
+		// Check map layer collisions
+		auto layer = getLayerIndex("PlatformTiles");
+		posX += 0.5;
+		posY += 0.5;
+		normal = glm::vec3(0);
+		auto left	= posX - 0.5;
+		auto right	= posX + 0.5;
+		auto bottom	= posY - 0.5;
+		auto top	= posY + 0.5;
+		// bottom half
+		//util::INFO("x="+std::to_string(posX)+"y="+std::to_string(posY));
+		if(getTileId(layer, right, bottom)) {
+			normal.x -= 1;
+			normal.y += 1;
+			util::INFO("Collision r bottom");
+		}
+		if(getTileId(layer, posX, bottom)) {
+			normal.x += 0;
+			normal.y += 1;
+			util::INFO("Collision x bottom");
+		}
+		if(getTileId(layer, left, bottom)) {
+			normal.x += 1;
+			normal.y += 1;
+			util::INFO("Collision l bottom");
+		}
+		// top half
+		if(getTileId(layer, left, top)) {
+			normal.x += 1;
+			normal.y -= 1;
+			util::INFO("Collision l top");
+		}
+		if(getTileId(layer, posX, top)) {
+			normal.x -= 0;
+			normal.y -= 1;
+			util::INFO("Collision x top");
+		}
+		if(getTileId(layer, right, top)) {
+			normal.x -= 1;
+			normal.y -= 1;
+			util::INFO("Collision r top");
+		}
+		// Left / right
+		if(getTileId(layer, left, posY)) {
+			normal.x += 1;
+			normal.y += 0;
+			util::INFO("Collision l y");
+		}
+		if(getTileId(layer, right, posY)) {
+			normal.x -= 1;
+			normal.y -= 0;
+			util::INFO("Collision r y");
+		}
+
+		auto sign = [](float v) {
+			if(v==0) return 0.0f;
+			return std::signbit(v) ? -1.0f : 1.0f;
+		};
+
+		if(glm::dot(normal,normal) > 0) {
+			// Select biggest normal to be actual normal
+			if(std::abs(normal.x) > std::abs(normal.y)) {
+				normal.x = sign(normal.x);
+				normal.y = 0;
+			} else if(std::abs(normal.x) < std::abs(normal.y)) {
+				normal.x = 0;
+				normal.y = sign(normal.y);
+			} else {
+				normal.x = sign(normal.x);
+				normal.y = sign(normal.y);
+				normal = glm::normalize(normal);
+			}
+			util::INFO("Collision normal: <"+std::to_string(normal.x)+", "+std::to_string(normal.y)+">");
+			return speed*normal;
+		}
+		return glm::vec3(0);
+	}
+
 	const size_t Map::getNumLayers() const {
 		return m_tileLayers.size();
 	}
 
-	const int Map::getTileId(size_t layer, size_t x, size_t y) const {
-		return m_tileLayers[layer]->tileIds[y][x];
+	size_t Map::getLayerIndex(const std::string& name) const {
+		auto it = m_layerNames.find(name);
+		if(it == m_layerNames.end()) {
+			util::ERROR("Required layer named \n"+name+"\n not found from map");
+		}
+		return it->second;
+	}
+
+	const int Map::getTileId(size_t layerId, size_t x, size_t y) const {
+		auto tileLayerId = m_allLayersMap[layerId][1];
+		assert(tileLayerId < m_tileLayers.size());
+		const auto& layer = m_tileLayers[tileLayerId];
+		return layer->tileIds[y][x];
 	}
 
 	template<typename Subset>
@@ -257,36 +382,32 @@ namespace map {
 		shader.setUniform( "parallax",	-paralX, paralY);
 	}
 
-	void drawImageLayer(const Map& map, const ImageLayer& layer, const std::vector<float>& matProjection, const glm::vec2& cameraDelta) {
-		map.m_imageLayerShader->use([&](shader::ShaderPass shader) {
-			auto& subset = layer.subset;
-			if(subset.used) {
-				applyLayerSubset(subset, shader, matProjection, cameraDelta);
-				shader.setUniform("repeat", subset.repeat.x, subset.repeat.y);
-				shader.setUniform("image", 0);
-				subset.texture->bind(0);
-				assert(subset.mesh != 0);
-				quad::draw(*subset.mesh);
-			}
-		});
+	void draw(const ImageLayer& layer, shader::ShaderPass shader, const std::vector<float>& matProjection, const glm::vec2& cameraDelta) {
+		auto& subset = layer.subset;
+		if(subset.used) {
+			applyLayerSubset(subset, shader, matProjection, cameraDelta);
+			shader.setUniform("repeat", subset.repeat.x, subset.repeat.y);
+			shader.setUniform("image", 0);
+			subset.texture->bind(0);
+			assert(subset.mesh != 0);
+			quad::drawImage(*subset.mesh);
+		}
 	}
 
-	void drawTileLayer(const Map& map, const TileLayer& layer, const std::vector<float>& matProjection, const glm::vec2& cameraDelta) {
-		map.m_tileLayerShader->use([&](shader::ShaderPass shader) {
-			for(const auto& subset : layer.subsets)	{
-				if(subset.used) {
-					applyLayerSubset(subset, shader, matProjection, cameraDelta);
-					shader.setUniform("tileSize", subset.tileSize.x, subset.tileSize.y);
-					shader.setUniform("tilesetSize", subset.tilesetSize.x, subset.tilesetSize.y);
-					shader.setUniform("lookupMap", 0);
-					subset.colorLookup->bind(0);
-					shader.setUniform("tileMap", 1);
-					subset.tileMap->bind(1);
-					assert(subset.mesh != 0);
-					mesh::draw(*subset.mesh, GL_TRIANGLE_STRIP, 4);
-				}
+	void draw(const TileLayer& layer, shader::ShaderPass shader, const std::vector<float>& matProjection, const glm::vec2& cameraDelta) {
+		for(const auto& subset : layer.subsets)	{
+			if(subset.used) {
+				applyLayerSubset(subset, shader, matProjection, cameraDelta);
+				shader.setUniform("tileSize", subset.tileSize.x, subset.tileSize.y);
+				shader.setUniform("tilesetSize", subset.tilesetSize.x, subset.tilesetSize.y);
+				shader.setUniform("lookupMap", 0);
+				subset.colorLookup->bind(0);
+				shader.setUniform("tileMap", 1);
+				subset.tileMap->bind(1);
+				assert(subset.mesh != 0);
+				quad::drawImage(*subset.mesh);
 			}
-		});
+		}
 	}
 
 	void draw(const Map& map, const std::vector<float>& matProjection, const glm::vec2& cameraDelta) {
@@ -311,9 +432,13 @@ namespace map {
 			auto type = map.getAllLayers()[layerId][0];
 			auto index = map.getAllLayers()[layerId][1];
 			if(type==0) {
-				drawTileLayer(map, *map.getTileLayers()[index], matProjection, cameraDelta);
+				map.m_tileLayerShader->use([&](shader::ShaderPass shader) {
+					draw(*map.getTileLayers()[index], shader, matProjection, cameraDelta);
+				});
 			} else if(type==1) {
-				drawImageLayer(map, *map.getImageLayers()[index], matProjection, cameraDelta);
+				map.m_imageLayerShader->use([&](shader::ShaderPass shader) {
+					draw(*map.getImageLayers()[index], shader, matProjection, cameraDelta);
+				});
 			}
 		}
 	}

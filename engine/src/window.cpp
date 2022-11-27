@@ -124,6 +124,8 @@ namespace window {
 
 		// Set current context
 		glfwMakeContextCurrent(m_window);
+		glfwSwapInterval(0);
+
 		// Load GL functions using glad
 		gladLoadGL(glfwGetProcAddress);
 

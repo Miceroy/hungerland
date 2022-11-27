@@ -3,7 +3,7 @@
 namespace my_game_app {
 	// Resource files:
 	static const std::vector<std::string> MAP_FILES = {
-		"assets/test_world1.tmx",
+		"assets/test_world2.tmx",
 	};
 
 	static const std::vector<std::string> BACKGROUND_FILES = {
