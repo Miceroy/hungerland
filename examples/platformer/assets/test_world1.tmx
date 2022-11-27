@@ -2,10 +2,10 @@
 <map version="1.9" tiledversion="1.9.2" orientation="orthogonal" renderorder="left-down" width="100" height="20" tilewidth="64" tileheight="64" infinite="0" nextlayerid="6" nextobjectid="1">
  <tileset firstgid="1" source="Tileset/Map_tileset.tsx"/>
  <tileset firstgid="301" source="Tileset/Map_decor.tsx"/>
- <imagelayer id="2" name="Background" visible="0" locked="1" parallaxx="0" parallaxy="0.3" repeatx="1">
+ <imagelayer id="2" name="Background" locked="1" parallaxx="0" parallaxy="0.3" repeatx="1">
   <image source="Background/Background.png" width="320" height="960"/>
  </imagelayer>
- <layer id="5" name="BackdroungTiles" width="100" height="20" visible="0" locked="1">
+ <layer id="5" name="BackdroungTiles" width="100" height="20" locked="1">
   <data encoding="base64" compression="zlib">
    eJzt1MEJgEAMRNFsBWr12og2ohaiNmDw4GnBOWxYlf8gtyAzSNYMAAAAAP5p9Jlqh8Bt9ll81tpBcNl8dp+jdhB7762quZS9p50mmbU+XVLTxVFvNdcp8l+quZS9L71H6q3mOkX2VHMpe9Hv0VDwW+qt5jpF9lRy9eLem96jUnKd/tgTAACUcQLsdDHA
   </data>
@@ -16,7 +16,7 @@
   </data>
  </layer>
  <objectgroup id="4" name="Objects" visible="0" locked="1"/>
- <layer id="3" name="ForegroundTiles" width="100" height="20" visible="0" locked="1">
+ <layer id="3" name="ForegroundTiles" width="100" height="20" locked="1">
   <data encoding="base64" compression="zlib">
    eJzt01kKgCAQgOHxDG2Ht3tkXaSr9JgigYgVhEbS/8HgvoEjAgAAAADAN2w37ZKWF88CrvAXgTxK5JIOyrHA/k+YIA7ubo0SaZVvz9EaHY07nfLzXOnCJObUZhL/JhPUU33mbAMgs9XGYHOqrzivAOAPdtCaFSU=
   </data>
