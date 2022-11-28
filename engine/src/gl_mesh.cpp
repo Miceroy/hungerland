@@ -119,7 +119,7 @@ namespace mesh {
 		checkGLError();
 		// Unbind
 		for(size_t i=0; i<numVertexArrys; ++i){
-			glDisableVertexAttribArray(i);
+			glDisableVertexAttribArray((unsigned)i);
 			checkGLError();
 		}
 		glBindVertexArray(0);

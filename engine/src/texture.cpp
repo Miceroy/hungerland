@@ -86,7 +86,7 @@ namespace texture {
 
 	Texture::~Texture() {
 		glDeleteTextures(1, &m_textureId);
-		checkGLError();
+		//checkGLError();
 	}
 
 	void Texture::bind(unsigned textureIndex) {

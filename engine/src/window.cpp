@@ -150,7 +150,7 @@ namespace window {
 		glfwGetFramebufferSize(m_window, &screenWidth, &screenHeight);
 		glViewport(0, 0, screenWidth, screenHeight);
 		m_screen = std::make_unique<screen::FrameBuffer>();
-		m_screen->setScreen(0.0f, screenWidth, 0.0f, screenHeight);
+		m_screen->setScreen(0.0f, float(screenWidth), 0.0f, float(screenHeight));
 
 	}
 
@@ -178,7 +178,7 @@ namespace window {
 	void Window::setWindowSize(size2d_t size){
 		m_size = size;
 		glfwMakeContextCurrent(m_window);
-		glfwSetWindowSize(m_window, m_size.x, m_size.y);
+		glfwSetWindowSize(m_window, int(m_size.x), int(m_size.y));
 	}
 
 	void Window::setWindowPosition(int2d_t pos){

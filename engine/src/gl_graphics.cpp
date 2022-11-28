@@ -141,7 +141,7 @@ namespace hungerland {
 				std::string("\nvoid main(){\n") +
 				std::string("vec4 color;\n") +
 				fragmentShaderMain + "\n" +
-				std::string("gl_FragData[0] = color;\n") +
+				std::string("FragColor = color;\n") +
 				std::string("\n}\n"));
 		};
 
@@ -156,7 +156,7 @@ namespace hungerland {
 				std::string("void main(){\n") +
 				std::string("vec4 color = texture2D(texture0, texCoord);\n") +
 				shader +
-				std::string("gl_FragData[0] = color;\n}\n");
+				std::string("FragColor = color;\n}\n");
 		}
 
 		static std::string mapImageLayerFSSource() {
@@ -166,6 +166,7 @@ namespace hungerland {
 				"uniform sampler2D image;\n"
 				"uniform float opacity = 1;\n"
 				"uniform vec2 repeat = vec2(0);\n"
+				"out vec4 FragColor;\n"
 				"void main() {\n"
 				"	vec4 color = vec4(0, 0, 0, 0);\n"
 				"   float doPixel = 1;\n"
@@ -179,7 +180,7 @@ namespace hungerland {
 				"        color = texture(image, texCoord);\n"
 				"	}\n"
 				"   color.a = min(color.a, opacity);\n"
-				"	gl_FragData[0] = color;\n"
+				"	FragColor = color;\n"
 				"}\n";
 		}
 
@@ -229,6 +230,7 @@ namespace hungerland {
 				"uniform float opacity;\n"
 				"uniform sampler2D lookupMap;\n"
 				"uniform sampler2D tileMap;\n"
+				"out vec4 FragColor;\n"
 				"void main() {\n"
 				"	vec4 values = texture(lookupMap, texCoord);\n"
 				"	if(values.r > 0.0) {\n"
@@ -236,9 +238,9 @@ namespace hungerland {
 				"		vec2 offset = getTileOffset(values.g, texCoord, textureSize(lookupMap, 0), tileSize, tilesetSize);\n"
 				"       vec4 color = texture(tileMap, position + offset);\n"
 				"		color.a = min(opacity, color.a);\n"
-				"		gl_FragData[0] = color;\n"
+				"		FragColor = color;\n"
 				"	} else {\n"
-				"		gl_FragData[0] = vec4(0,0,0,0);\n"
+				"		FragColor = vec4(0,0,0,0);\n"
 				"	}\n"
 				"}";
 		}
