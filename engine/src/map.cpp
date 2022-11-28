@@ -242,27 +242,27 @@ namespace map {
 		return {s.x, s.y};
 	}
 
-	glm::vec3 Map::checkCollision(const glm::vec3 position, glm::vec3 halfSize, float speed) const {
+	glm::vec3 Map::checkCollision(const glm::vec3 position, glm::vec3 halfSize) const {
 		// Ckeck map limits
 		auto mapSize = getMapSize();
 		mapSize.x -= 1;
 		mapSize.y -= 1;
 		float posX = position.x;
 		float posY = position.y;
-		glm::vec3 normal(0);
-		if(posX < 0)			normal.x =  1;
-		if(posX > mapSize.x)	normal.x = -1;
-		if(posY < 0)			normal.y =  1;
-		if(posY > mapSize.y)	normal.y = -1;
-		if(glm::dot(normal,normal) > 0) {
-			return speed*glm::normalize(normal);
+		glm::vec3 V(0);
+		if(posX < 0)			V.x =  3;
+		if(posX > mapSize.x)	V.x = -3;
+		if(posY < 0)			V.y =  3;
+		if(posY > mapSize.y)	V.y = -3;
+		if(glm::dot(V,V) > 0) {
+			return V;
 		}
 
 		// Check map layer collisions
 		auto layer = getLayerIndex("PlatformTiles");
 		posX += 0.5;
 		posY += 0.5;
-		normal = glm::vec3(0);
+		V = glm::vec3(0);
 		auto left	= posX - 0.5;
 		auto right	= posX + 0.5;
 		auto bottom	= posY - 0.5;
@@ -270,70 +270,40 @@ namespace map {
 		// bottom half
 		//util::INFO("x="+std::to_string(posX)+"y="+std::to_string(posY));
 		if(getTileId(layer, right, bottom)) {
-			normal.x -= 1;
-			normal.y += 1;
-			util::INFO("Collision r bottom");
+			V.x -= 1;
+			V.y += 1;
 		}
 		if(getTileId(layer, posX, bottom)) {
-			normal.x += 0;
-			normal.y += 1;
-			util::INFO("Collision x bottom");
+			V.x += 0;
+			V.y += 1;
 		}
 		if(getTileId(layer, left, bottom)) {
-			normal.x += 1;
-			normal.y += 1;
-			util::INFO("Collision l bottom");
+			V.x += 1;
+			V.y += 1;
 		}
 		// top half
 		if(getTileId(layer, left, top)) {
-			normal.x += 1;
-			normal.y -= 1;
-			util::INFO("Collision l top");
+			V.x += 1;
+			V.y -= 1;
 		}
 		if(getTileId(layer, posX, top)) {
-			normal.x -= 0;
-			normal.y -= 1;
-			util::INFO("Collision x top");
+			V.x -= 0;
+			V.y -= 1;
 		}
 		if(getTileId(layer, right, top)) {
-			normal.x -= 1;
-			normal.y -= 1;
-			util::INFO("Collision r top");
+			V.x -= 1;
+			V.y -= 1;
 		}
 		// Left / right
 		if(getTileId(layer, left, posY)) {
-			normal.x += 1;
-			normal.y += 0;
-			util::INFO("Collision l y");
+			V.x += 1;
+			V.y += 0;
 		}
 		if(getTileId(layer, right, posY)) {
-			normal.x -= 1;
-			normal.y -= 0;
-			util::INFO("Collision r y");
+			V.x -= 1;
+			V.y -= 0;
 		}
-
-		auto sign = [](float v) {
-			if(v==0) return 0.0f;
-			return std::signbit(v) ? -1.0f : 1.0f;
-		};
-
-		if(glm::dot(normal,normal) > 0) {
-			// Select biggest normal to be actual normal
-			if(std::abs(normal.x) > std::abs(normal.y)) {
-				normal.x = sign(normal.x);
-				normal.y = 0;
-			} else if(std::abs(normal.x) < std::abs(normal.y)) {
-				normal.x = 0;
-				normal.y = sign(normal.y);
-			} else {
-				normal.x = sign(normal.x);
-				normal.y = sign(normal.y);
-				normal = glm::normalize(normal);
-			}
-			util::INFO("Collision normal: <"+std::to_string(normal.x)+", "+std::to_string(normal.y)+">");
-			return speed*normal;
-		}
-		return glm::vec3(0);
+		return V;
 	}
 
 	const size_t Map::getNumLayers() const {

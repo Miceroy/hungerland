@@ -7,89 +7,98 @@ namespace math = glm;
 using namespace hungerland;
 
 namespace platformer {
-
-	namespace phys {
-		///
-		/// \brief integrateBody
-		/// \param getCollision
-		/// \param body
-		/// \param F
-		/// \param I
-		/// \param dt
-		///
-		template<typename Body, typename CollisionFunc>
-		auto integrateBody(const CollisionFunc& getCollision, const Body& body, const glm::vec3& F, const glm::vec3& I, float dt) {
-			auto euler = [&](Body body, float dt) {
-				// Integrate velocity from forces and position from velocity:
-				auto i = dt * (F + body.acceleration);
-				body.velocity += I + i;
-				body.position += body.velocity * dt;
-				return std::make_tuple(body, getCollision(body));
-			};
-			auto resI = glm::vec3(0);
-			auto deltaTime = dt;
-			auto resBody = body;
-			for(size_t i=0; i<5; ++i){
-				const float step = 0.5*deltaTime;
-				auto [newBody, collision] = euler(body, deltaTime);
-				if(glm::dot(collision,collision) > 0) {
-					// If collides at first step, set impulse:
-					if(glm::dot(resI,resI)==0 ) resI = collision;
-					// Adjust delta time to be smaller:
-					deltaTime -= step;
-				} else {
-					// Not collides, adjust delta time to be bigger:
-					deltaTime += step;
-					resBody = newBody;
+namespace phys {
+	///
+	/// \brief integrateBody
+	/// \param getCollision
+	/// \param body
+	/// \param F
+	/// \param I
+	/// \param dt
+	///
+	template<typename Body, typename CollisionFunc, typename ReactFunc>
+	auto integrateBody(const Body& body, CollisionFunc collisionFunc, ReactFunc reactFunc, const glm::vec3& F, const glm::vec3& I, float dt) {
+		auto euler = [&](Body body, float dt) {
+			// Integrate velocity from forces and position from velocity:
+			auto i = dt * (F + body.acceleration);
+			body.velocity += I + i;
+			body.position += body.velocity * dt;
+			return std::make_tuple(body, collisionFunc(body));
+		};
+		auto resD = glm::vec3(0);
+		auto resN = glm::vec3(0);
+		auto deltaTime = dt;
+		auto resBody = body;
+		for(size_t i=0; i<5; ++i){
+			const float step = 0.5*deltaTime;
+			auto [newBody, collision] = euler(body, deltaTime);
+			if(glm::dot(collision,collision) > 0) {
+				// If collides at first step, set impulse:
+				if(glm::dot(resD,resD)==0 ) {
+					resD = collision;
+					resN = glm::dot(resD,resD) > 0.0f ? glm::normalize(resD) : resD;
 				}
-				// Done?
-				if(deltaTime>dt || dt < 0.001f) {
-					break;
-				}
+				// Adjust delta time to be smaller:
+				deltaTime -= step;
+			} else {
+				// Not collides, adjust delta time to be bigger:
+				deltaTime += step;
+				resBody = newBody;
 			}
-			auto resN = glm::dot(resI,resI) > 0.0f ? glm::normalize(resI) : resI;
-			return std::make_tuple(resBody, resN, resI);
+			// Done?
+			if(deltaTime>dt || dt < 0.001f) {
+				break;
+			}
 		}
-
-		///
-		/// \brief updateBodyImpact
-		/// \param body
-		/// \param N
-		///
-		template<typename Body>
-		auto updateBodyImpact(Body body, const glm::vec3& N) {
-			// Collision response after integrate:
-			if(glm::length(N) > 0){
-				body.velocity = glm::reflect(body.velocity, glm::normalize(N));
-				body.acceleration.x = 0;
-				body.acceleration.y = 0;
-			}
-			return body;
-		};
-
-		///
-		/// \brief limitVelocity
-		/// \param body
-		/// \param max
-		///
-		template<typename Body>
-		auto limitVelocity(Body body, glm::vec3 max) {
-			// Clamp to VX:
-			auto speedX = body.velocity.x;
-			if(std::abs(speedX) > max.x) {
-				body.velocity.x = std::signbit(speedX) ? -max.x : max.x;
-			}
-			auto speedY = body.velocity.y;
-			if(std::abs(speedY) > max.y) {
-				body.velocity.y = std::signbit(speedY) ? -max.y : max.y;
-			}
-			auto speedZ = body.velocity.z;
-			if(std::abs(speedZ) > max.z) {
-				body.velocity.z = std::signbit(speedZ) ? -max.z : max.z;
-			}
-			return body;
-		};
+		return reactFunc(resBody, resD, resN);
 	}
+}
+namespace body {
+	///
+	/// \brief react
+	/// \param body
+	/// \param N
+	///
+	template<typename Body>
+	auto react(Body body, const glm::vec3& , const glm::vec3& N, glm::vec3 maxVel, glm::vec3 maxAcc) {
+		auto sign = [](float v) {
+			if(v==0) return 0.0f;
+			return std::signbit(v) ? -1.0f : 1.0f;
+		};
+
+		// Collision response after integrate:
+		if(glm::length(N) > 0){
+			//auto speed = glm::length(body.velocity);
+			body.velocity = glm::reflect(body.velocity, glm::normalize(N));
+			body.acceleration.x = 0;
+			body.acceleration.y = 0;
+		}
+		auto clamp = [](float val, float maxDelta){
+			if(std::abs(val) > maxDelta)return std::signbit(val) ? -maxDelta : maxDelta;
+			return val;
+		};
+		// Limit body velocity to maxVelocity:
+		body.velocity.x = clamp(body.velocity.x, maxVel.x);
+		body.velocity.y = clamp(body.velocity.y, maxVel.y);
+		body.velocity.z = clamp(body.velocity.z, maxVel.z);
+		// Limit body acceleration to maxAcceleration:
+		body.acceleration.x = clamp(body.acceleration.x, maxAcc.x);
+		body.acceleration.y = clamp(body.acceleration.y, maxAcc.y);
+		body.acceleration.z = clamp(body.acceleration.z, maxAcc.z);
+		return body;
+	};
+
+	///
+	/// \brief limitVelocity
+	/// \param body
+	/// \param max
+	///
+	template<typename Body>
+	auto limitVelocity(Body body, glm::vec3 max) {
+
+		return body;
+	};
+}
 
 	/// CONFIG:
 	static const size_t	SCREEN_SIZE_X = 1920;
@@ -135,87 +144,117 @@ namespace platformer {
 		world.camera.position = math::vec3(0, mapSize.y/2, 0);
 	}
 
-	namespace player {
+	namespace character {
 		struct Input {
 			float dx;
 			bool accelerate;
 			bool wantJump;
 		};
 
-		const float VX_MAX = 6;
-		const float G = -20;
-
-
-
+		// Collision response:
 		template<typename Character>
-		auto updateCharacterImpact(Character character, const glm::vec3& N) {
-			// Collision response after integrate:
-			character = phys::updateBodyImpact(character, N);
-			character.grounded	|= N.y > 0;
-			character.topped	|= N.y < 0;
-			character.hitWall	|= N.x == 1;
-			character.hitWall	|= N.x == -1;
+		auto react(Character character, glm::vec3 D, glm::vec3 N) {
+			character.hitGround	= D.y > 0 ? D.y : 0;
+			character.hitTop	= D.y < 0 ? -D.y : 0;
+			character.hitWall	= std::abs(D.x) > 1 ? D.x : 0;
+			if(character.hitGround || character.hitTop || character.hitWall) {
+				util::INFO("Character collision: hitGround="+std::to_string(character.hitGround)+
+						   ", hitTop="+std::to_string(character.hitTop)+", hitWall="+std::to_string(character.hitWall));
+			}
 			return character;
 		};
 
-		template<typename World, typename Character>
-		auto updateCharacter(const World& world, Character character, float vMax, float dx, bool accelerate, bool groundJump, bool wallJump, float dt) {
-			const float PY = 10;
-			const float VX_ACC = 100;
-			const float VX_BREAK = 100;
+		template<typename Character, typename CollisionFunc>
+		auto update(const CollisionFunc& collisionFunc, const Character oldCharacter, float dx, bool accelerate, bool wantJump, float dt) {
+			// Constants for actions:
+			const float VX_ACC = 20;
+			const float VX_BREAK = 20;
 			const float S = 2.0f;
-			auto checkCollisions = [&world](const Character& body) {
-				return world.tileMap->checkCollision(body.position, glm::vec3(0.5, 0.5, 0.0), glm::length(body.velocity));
-			};
+			const float PY = 10;
+			const float G = -20;
+			const auto V_MAX = glm::vec3(6, 10, 0);
+			const auto A_MAX = glm::vec3(VX_ACC+VX_BREAK, G, 0);
+			const auto GRAVITY = glm::vec3(0, G, 0);
 
-			// First, Integrate body movement by environment forces:
-			{
-				auto totalForce = glm::vec3(0,0,0);
-				auto totalImpulse = glm::vec3(0,0,0);
-				const glm::vec3 gravity(0, G, 0);
-				totalForce += gravity;
-				// Intergate:
-				auto [newBody, N, I] = phys::integrateBody(checkCollisions , character, totalForce, totalImpulse, dt);
-				newBody = phys::limitVelocity(newBody, glm::vec3(vMax ,vMax, 0));
-				newBody = updateCharacterImpact(newBody, N);
-				character = newBody;
-			}
-
-			// Constraint Character:
-			{
-				if(character.grounded) {
+			// First, Integrate character movement by environment gravity:
+			auto reactEnv = [&V_MAX,&A_MAX,&oldCharacter](Character newCharacter, glm::vec3 D, glm::vec3 N) {
+				if(glm::length(D) > 0) {
+					assert(glm::length(N) > 0);
+					// Select biggest normal to be actual normal
+					if(std::abs(D.x) > std::abs(D.y)) {
+						D.x = D.x;
+						D.y = 0;
+					} else if(std::abs(D.x) < std::abs(D.y)) {
+						D.x = 0;
+						D.y = D.y;
+					} else {
+						D.x = 0;
+						D.y = D.y;
+					}
+					N = glm::normalize(D);
+				}
+				newCharacter = body::react(newCharacter, D, N, V_MAX, A_MAX);
+				newCharacter = react(newCharacter, D, N);
+				bool topped = newCharacter.hitTop;
+				if(newCharacter.hitGround) {
 					// If grounded, set velocity y=0:
-					character.velocity.y = 0;
+					//if(!topped){
+						newCharacter.velocity.y = 0;
+						newCharacter.acceleration.y = 0;
+					//}
+				} else {
+					// If in air, check walls.
+					if(newCharacter.hitWall) {
+						// If hits wall, stop:
+						newCharacter.velocity.x = 0;
+						newCharacter.acceleration.x = 0;
+						//if(!topped) {
+							newCharacter.velocity.y = 0;
+							newCharacter.acceleration.y = 0;
+						//}
+					}
 				}
-				if(character.hitWall) {
-					// If hitWall, set velocity y=0:
-					character.velocity.x = 0;
-				}
-			}
+				return newCharacter;
+			};
+			Character character =  phys::integrateBody(oldCharacter, collisionFunc, reactEnv, GRAVITY, glm::vec3(0), dt);
+
 
 			// Then apply character movement:
 			{
 				auto totalForce = glm::vec3(0,0,0);
 				auto totalImpulse = glm::vec3(0,0,0);
-				if(groundJump) {
+				bool grounded = character.hitGround || oldCharacter.hitGround;
+				bool walled = character.hitWall || oldCharacter.hitWall;
+				bool wallJump	= wantJump && walled;
+				bool topped = character.hitTop || oldCharacter.hitTop;
+
+				if(grounded) {
+					character.acceleration.y = 0;
+				}
+
+				if(walled) {
+					character.velocity.x = 0;
+					character.acceleration.x = 0;
+					//if(!topped) {
+						character.velocity.y = 0;
+						character.acceleration.y = 0;
+					//}
+				}
+
+				if(wantJump && grounded) {
 					// Gound jump list/right
 					totalImpulse.y = PY;
 					character.acceleration.y = 0;
-				} else if (wallJump) {
+				} else if (wantJump && walled) {
 					// Wall jump list/right
 					totalImpulse.y = PY;
 					totalImpulse.x = -dx*PY;
-					character.acceleration.x = 0;
-					character.acceleration.y = 0;
-					character.velocity.x = 0;
-					character.velocity.y = 0;
 				} else if(dx != 0) {
 					// Move list/right:
-					totalForce.x = VX_ACC * dx * ((character.grounded && accelerate) ? S : 1);
+					totalForce.x = VX_ACC * dx * ((character.hitGround && accelerate) ? S : 1);
 					character.acceleration.x = 0;
 				} else {
 					// Friction x:
-					character.acceleration.x = 0;
 					auto vx = character.velocity.x;
 					if(fabsf(vx) > 1) {
 						auto dir = vx/fabsf(vx);
@@ -224,14 +263,48 @@ namespace platformer {
 						totalForce.x = -vx*VX_BREAK;
 					}
 				}
-				// Intergate:
-				auto [newBody, N, I] = phys::integrateBody(checkCollisions , character, totalForce, totalImpulse, dt);
-				newBody = phys::limitVelocity(newBody, glm::vec3(vMax ,vMax, 0));
-				newBody = updateCharacterImpact(newBody, N);
-				return newBody;
+				// Collision response:
+				auto reactAction = [&character](Character newCharacter, glm::vec3 D, glm::vec3 N) {
+					if(glm::length(D) > 0) {
+						assert(glm::length(N) > 0);
+						// Select biggest normal to be actual normal
+						if(std::abs(D.x) > std::abs(D.y)) {
+							D.x = D.x;
+							D.y = 0;
+						} else if(std::abs(D.x) < std::abs(D.y)) {
+							D.x = 0;
+							D.y = D.y;
+						} else {
+							D.x = 0;
+							D.y = D.y;
+						}
+						N = glm::normalize(D);
+					}
+					newCharacter = react(newCharacter, D, N);
+					if(character.hitGround && !newCharacter.hitGround) {
+						// If grounded, set velocity y=0:
+						//newCharacter.velocity.y = 0;
+						//newCharacter.acceleration.y = 0;
+					} else {
+						// If in air, check walls.
+						//newCharacter.acceleration.y = 0;
+						if(newCharacter.hitWall || character.hitWall) {
+							// If hits wall, stop:
+							//newCharacter.velocity.x = 0;
+							//newCharacter.velocity.y = 0;
+							//newCharacter.acceleration.x = 0;
+							//newCharacter.acceleration.y = 0;
+						}
+					}
+					return newCharacter;
+				};
+				character =  phys::integrateBody(character, collisionFunc, reactAction, totalForce, totalImpulse, dt);
 			}
+			return character;
 		};
+	} // End - namespace character
 
+	namespace player {
 		///
 		/// \brief 	world::player::update
 		/// \param ui
@@ -241,15 +314,14 @@ namespace platformer {
 		///
 		template<typename Input, typename World, typename Player>
 		auto update(const Input& ui, const World& world, Player player, float dt) {
+			// Collision detection:
+			auto collisionFunc = [&world](const Player& body) {
+				return world.tileMap->checkCollision(body.position, glm::vec3(0.5, 0.5, 0.0));
+			};
 			// Add player update by input:
-			bool groundJump	= ui.wantJump && player.grounded;
-			bool wallJump	= ui.wantJump && player.hitWall;
-			player.grounded = false;
-			player.topped = false;
-			player.hitWall = false;
-			return updateCharacter(world, player, VX_MAX, ui.dx, ui.accelerate, groundJump, wallJump, dt);
+			return character::update(collisionFunc, player, ui.dx, ui.accelerate, ui.wantJump, dt);
 		};
-	}
+	} // End - namespace player
 
 	namespace camera {
 		///
@@ -285,7 +357,7 @@ namespace platformer {
 			camera.position.y = clamp(camera.position.y, minCamY, maxCamY);
 			return camera;
 		};
-	}
+	} // End - namespace camera
 
 
 	template<typename World, typename Functor, typename Input>
@@ -329,9 +401,9 @@ namespace app {
 		glm::vec3 position;
 		glm::vec3 velocity = glm::vec3(0);
 		glm::vec3 acceleration = glm::vec3(0);
-		bool grounded = false;
-		bool topped = false;
-		bool hitWall = false;
+		float hitGround = 0;
+		float hitTop = 0;
+		float hitWall = 0;
 	};
 
 	auto to_mat(glm::mat4 m){

@@ -61,7 +61,7 @@ int main() {
 			lastFrame = int(totalTime);
 		}
 		// Configure input buttons:
-		platformer::player::Input playerInput;
+		platformer::character::Input playerInput;
 		playerInput.dx			= input.getKeyState(window::KEY_RIGHT)			- input.getKeyState(window::KEY_LEFT);
 		playerInput.accelerate	= input.getKeyState(window::KEY_LEFT_SHIFT)		+ input.getKeyState(window::KEY_RIGHT_SHIFT);
 		playerInput.wantJump	= input.getKeyPressed(window::KEY_LEFT_CONTROL)	+ input.getKeyPressed(window::KEY_RIGHT_CONTROL);

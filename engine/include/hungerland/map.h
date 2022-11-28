@@ -126,7 +126,7 @@ namespace map {
 			return m_allLayersMap;
 		}
 
-		glm::vec3 checkCollision(const glm::vec3 position, glm::vec3 halfSize, float speed) const;
+		glm::vec3 checkCollision(const glm::vec3 position, glm::vec3 halfSize) const;
 
 
 	public:
