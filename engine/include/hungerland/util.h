@@ -98,7 +98,7 @@ namespace util {
 
 	static inline void fassert(bool cond, std::string expr, std::string func, std::string file, int line) {
 		if(cond) {
-			util::ERROR("Assertation failed at file (Line:+line+): \"" + file+ "\"");
+			hungerland::util::ERROR("Assertation failed at file (Line:+line+): \"" + file+ "\"");
 		}
 	}
 } // End - namespace util

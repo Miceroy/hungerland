@@ -27,6 +27,7 @@
 #include <string>           // Inlude std::string
 #include <vector>           // Inlude std::vector
 #include <memory>           // Inlude std::string
+#include <array>
 
 namespace hungerland {
 	typedef std::size_t size_t;

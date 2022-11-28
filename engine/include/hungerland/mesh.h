@@ -37,7 +37,8 @@ namespace mesh {
 	/// @ingroup hungerland::mesh
 	/// @author Mikko Romppainen (kajakbros@gmail.com)
 	///
-	struct Mesh {
+	class Mesh {
+	public:
 		typedef std::shared_ptr<Mesh> Ref;
 		~Mesh();
 		unsigned vao;

@@ -22,7 +22,7 @@
  SOFTWARE.
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 #pragma once
-#include <hungerland/types.h>
+#include <string>
 
 struct ma_engine;
 

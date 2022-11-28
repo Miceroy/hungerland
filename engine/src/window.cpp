@@ -26,8 +26,8 @@
 #include <hungerland/texture.h>
 #include <hungerland/mesh.h>
 #include <hungerland/engine.h>
-
-#include <glad/gl.h>		// Include glad
+#include <array>
+#include <glad/gl.h>
 #include <GLFW/glfw3.h>		// Include glfw
 #include <chrono>			// for Timer
 
@@ -116,7 +116,7 @@ namespace window {
 		if(!g_engine) g_engine = std::make_unique<engine::Engine>();
 		// Create window and check that creation was succesful.
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-		m_window = glfwCreateWindow(m_size.x, m_size.y, title.c_str(), 0, 0);
+		m_window = glfwCreateWindow(int(m_size.x), int(m_size.y), title.c_str(), 0, 0);
 		if (!m_window) {
 			throw std::runtime_error("Failed to create window!");
 			return;
@@ -150,7 +150,7 @@ namespace window {
 		glfwGetFramebufferSize(m_window, &screenWidth, &screenHeight);
 		glViewport(0, 0, screenWidth, screenHeight);
 		m_screen = std::make_unique<screen::FrameBuffer>();
-		m_screen->setScreen(0, screenWidth, 0, screenHeight);
+		m_screen->setScreen(0.0f, screenWidth, 0.0f, screenHeight);
 
 	}
 

@@ -351,8 +351,8 @@ namespace body {
 			auto mapSize = world.tileMap->getMapSize();
 			float minCamX	= 15.5f;
 			float maxCamX	= mapSize.x-minCamX;
-			float minCamY	= mapSize.y/2 - 2;
-			float maxCamY	= mapSize.y/2;
+			float minCamY	= mapSize.y/2.0f - 2.0f;
+			float maxCamY	= mapSize.y/2.0f;
 			camera.position.x = clamp(camera.position.x, minCamX, maxCamX);
 			camera.position.y = clamp(camera.position.y, minCamY, maxCamY);
 			return camera;

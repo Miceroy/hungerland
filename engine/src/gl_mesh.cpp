@@ -52,7 +52,7 @@ namespace mesh {
 		checkGLError();
 		glBufferData(GL_ARRAY_BUFFER, data.size()*sizeof(data[0]), &data[0], dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
 		checkGLError();
-		glVertexAttribPointer(index, numComponents, GL_FLOAT, GL_FALSE, numComponents * sizeof(float), (void*)0);
+		glVertexAttribPointer(index, int(numComponents), GL_FLOAT, GL_FALSE, int(numComponents * sizeof(float)), (void*)0);
 		checkGLError();
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		checkGLError();
@@ -111,7 +111,7 @@ namespace mesh {
 		checkGLError();
 		int numVertexArrys = sizeof(mesh.vbos)/sizeof(mesh.vbos[0]);
 		for(size_t i=0; i<numVertexArrys; ++i){
-			glEnableVertexAttribArray(i);
+			glEnableVertexAttribArray(int(i));
 			checkGLError();
 		}
 		// Draw
