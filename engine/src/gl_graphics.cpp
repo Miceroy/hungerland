@@ -154,7 +154,7 @@ namespace hungerland {
 				std::string("uniform sampler2D texture0;\n")
 				+ globals + "\n" +
 				std::string("void main(){\n") +
-				std::string("vec4 color = texture2D(texture0, texCoord);\n") +
+				std::string("vec4 color = texture(texture0, texCoord);\n") +
 				shader +
 				std::string("FragColor = color;\n}\n");
 		}

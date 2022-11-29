@@ -7,6 +7,52 @@ namespace math = glm;
 using namespace hungerland;
 
 namespace platformer {
+
+///=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+/// Platformer game configuration:
+///=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+	/// Pelin piirtoalueen x ja y koko pikseleinä:
+	static const size_t	SCREEN_SIZE_X = 1920;
+	static const size_t	SCREEN_SIZE_Y = 1080;
+
+	/// Pelaajahahmon asetukset (suluissa suureen mittayksikkö):
+	namespace  character {
+
+		/// X-suuntainen liikkuminen, eli kävely/juoksu:
+
+		/// VX_MAX = Hahmon maksimi x-suuntainen nopeus (tileä sekunnissa).
+		/// Isompi luku -> korkeampi hahmon maksiminopeus kävellessä.
+		const float VX_MAX = 20;
+
+		/// SX = Juoksun maksiminopeuskerroin VX_MAX muuttujan suhteen. Maksimi juoksunopeus=SX*VX_MAX.
+		/// Isompi luku -> korkeampi hahmon maksiminopeus juostessa.
+		const float SX = 2.0f;
+
+		/// VX_ACC = x-suuntainen kiihtyvyys (tileä/sekunnissa^2).
+		/// Kontrolloi sitä, kuinka nopeasti hahmo saavuttaa maksinopeuden.
+		const float VX_ACC = 20;
+
+		/// VX_BREAK = x-suuntainen jarrutus kiihtyvyys (tileä/sekunnissa^2).
+		/// Kontrolloi sitä, kuinka nopeasti hahmo pysähtyy.
+		/// Isompi luku -> nopeampi pysähtyminen.
+		const float VX_BREAK = 20;
+
+		/// Y-suuntainen liikkuminen, eli hyppy/putoaminen:
+
+		/// IY = Hypyn voimakkuus (impulssin suuruus).
+		/// Isompi luku -> korkeampi hyppy
+		const float IY = 10;
+
+		/// GY = Maan vetovoiman voimakkuus (kiihtyvyys=tileä/sekunnissa^2).
+		/// Isompio luku -> Nopeampi putoaminen
+		const float GY = -20;
+
+		/// VY_MAX = Maksimi y-suuntainen nopeus (tileä sekunnissa).
+		/// Rajoittaa maksimiputoamisvauhtia.
+		const float VY_MAX = 20;
+	}
+///=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 namespace phys {
 	///
 	/// \brief integrateBody
@@ -87,23 +133,7 @@ namespace body {
 		body.acceleration.z = clamp(body.acceleration.z, maxAcc.z);
 		return body;
 	};
-
-	///
-	/// \brief limitVelocity
-	/// \param body
-	/// \param max
-	///
-	template<typename Body>
-	auto limitVelocity(Body body, glm::vec3 max) {
-
-		return body;
-	};
 }
-
-	/// CONFIG:
-	static const size_t	SCREEN_SIZE_X = 1920;
-	static const size_t	SCREEN_SIZE_Y = 1080;
-
 	///
 	/// \brief platform::world::loadScene function.
 	/// \param f
@@ -166,15 +196,9 @@ namespace body {
 
 		template<typename Character, typename CollisionFunc>
 		auto update(const CollisionFunc& collisionFunc, const Character oldCharacter, int dx, bool accelerate, bool wantJump, float dt) {
-			// Constants for actions:
-			const float VX_ACC = 20;
-			const float VX_BREAK = 20;
-			const float S = 2.0f;
-			const float PY = 10;
-			const float G = -20;
-			const auto V_MAX = glm::vec3(6, 10, 0);
-			const auto A_MAX = glm::vec3(VX_ACC+VX_BREAK, G, 0);
-			const auto GRAVITY = glm::vec3(0, G, 0);
+			const auto V_MAX = glm::vec3(SX*VX_MAX, VY_MAX, 0);
+			const auto A_MAX = glm::vec3(SX*VX_ACC, GY, 0);
+			const auto GRAVITY = glm::vec3(0, GY, 0);
 
 			// First, Integrate character movement by environment gravity:
 			auto reactEnv = [&V_MAX,&A_MAX,&oldCharacter](Character newCharacter, glm::vec3 D, glm::vec3 N) {
@@ -243,15 +267,15 @@ namespace body {
 
 				if(wantJump && grounded) {
 					// Gound jump list/right
-					totalImpulse.y = PY;
+					totalImpulse.y = IY;
 					character.acceleration.y = 0;
 				} else if (wantJump && walled) {
 					// Wall jump list/right
-					totalImpulse.y = PY;
-					totalImpulse.x = -dx*PY;
+					totalImpulse.y = IY;
+					totalImpulse.x = -dx*IY;
 				} else if(dx != 0) {
 					// Move list/right:
-					totalForce.x = VX_ACC * dx * ((character.hitGround && accelerate) ? S : 1);
+					totalForce.x = VX_ACC * dx * ((character.hitGround && accelerate) ? SX : 1);
 					character.acceleration.x = 0;
 				} else {
 					// Friction x:
@@ -453,7 +477,6 @@ namespace app {
 	///
 	void render(screen::Screen& screen, const app::World<GameObject>& state) {
 		static const auto MAP_OFFSET = glm::vec3(0.5, 0.5, 0);
-
 		using namespace platformer;
 
 		// Aseta origo ruudun vasempaan alareunaan:
@@ -461,7 +484,7 @@ namespace app {
 		const auto SIZE_Y = float(SCREEN_SIZE_Y/2);
 		screen.setScreen(-SIZE_X, SIZE_X , SIZE_Y, -SIZE_Y);
 		screen.clear(0, 0, 0, 0);
-		glm::mat4 projection = glm::ortho(-SIZE_X, SIZE_X , SIZE_Y, -SIZE_Y);
+		auto projection = glm::ortho(-SIZE_X, SIZE_X , SIZE_Y, -SIZE_Y);
 
 
 		// Offset of half tiles to look at centers of tiles.
@@ -469,12 +492,11 @@ namespace app {
 			// Flip camera y and offset
 			cameraPosition.y =  mapLayers.getMapSize().y-cameraPosition.y-1;
 			// And offset
-			glm::mat4 mat = glm::mat4(1);
-			const glm::vec3 SCALE = {mapLayers.getTileSize().x, mapLayers.getTileSize().y, 1};
-			auto mapScreenPos = SCALE * (cameraPosition + MAP_OFFSET);
-			mat = glm::translate(mat, mapScreenPos);
-			matProj = glm::translate(matProj, 0.5f * SCALE);
-			glm::vec2 cameraDelta = cameraPosition * SCALE;
+			const auto scale = glm::vec3{mapLayers.getTileSize().x, mapLayers.getTileSize().y, 1};
+			const auto mapScreenPos = scale * (cameraPosition + MAP_OFFSET);
+			auto mat = glm::translate(glm::mat4(1), mapScreenPos);
+			matProj = glm::translate(matProj, 0.5f * scale);
+			auto cameraDelta = cameraPosition * scale;
 			map::draw(mapLayers, to_vec(matProj*glm::inverse(mat)), cameraDelta);
 			return matProj;
 		};
@@ -487,7 +509,7 @@ namespace app {
 			position += MAP_OFFSET;
 			position *= glm::vec3(sizeInPixels.x, sizeInPixels.y, 1);
 
-			glm::mat4 mat = glm::mat4(1);
+			auto mat = glm::mat4(1);
 			mat = glm::translate(mat, position);
 			mat = glm::scale(mat, glm::vec3(sizeInPixels.x,sizeInPixels.y, 1));
 			screen.drawSprite(mat, texture);
