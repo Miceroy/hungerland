@@ -88,7 +88,7 @@ void FrameBuffer::bind() {
 	if( GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER) ) {
 		throw std::runtime_error("Texture could not add to framebuffer!");
 	}
-	glDrawBuffers(m_drawBuffers.size(), &m_drawBuffers[0]);
+	glDrawBuffers(GLsizei(m_drawBuffers.size()), &m_drawBuffers[0]);
 }
 
 

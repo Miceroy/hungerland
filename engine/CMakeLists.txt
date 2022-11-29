@@ -37,3 +37,9 @@ target_include_directories(hungerland PUBLIC
 )
 
 
+set_target_properties(hungerland PROPERTIES FOLDER "hungerland")
+set_target_properties(tmxlite PROPERTIES FOLDER "hungerland")
+set_target_properties(uninstall PROPERTIES FOLDER "hungerland")
+set_target_properties(glfw PROPERTIES FOLDER "hungerland")
+set_target_properties(update_mappings PROPERTIES FOLDER "hungerland")
+

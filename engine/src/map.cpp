@@ -82,9 +82,9 @@ namespace map {
 					if(layerTileID >= firstGID && layerTileID <= lastGID) {
 						auto tileId = layerTileID - firstGID + 1;
 						// Red channel: making sure to index relative to the tileset
-						layerPixels.push_back(tileId);
+						layerPixels.push_back(float(tileId));
 						// Green channel: tile flips are performed on the shader
-						layerPixels.push_back(layerTiles[tileIndex].flipFlags);
+						layerPixels.push_back(float(layerTiles[tileIndex].flipFlags));
 						layerPixels.push_back(0);
 						layerPixels.push_back(0);
 						tsUsed = true;
@@ -159,7 +159,7 @@ namespace map {
 		, m_imageLayerShader(shaders::createImageLayer())	{
 		// Load map
 		if(false == m_map->load(mapFilename)) {
-			util::ERROR("Failed to load map file: \"" + mapFilename + "\"!");
+			util::ERR("Failed to load map file: \"" + mapFilename + "\"!");
 		}
 		util::INFO("Loaded Tiled map: " + mapFilename);
 
@@ -171,7 +171,7 @@ namespace map {
 		for(const auto& ts : m_map->getTilesets()) {
 			auto texture = loadTexture(ts.getImagePath());
 			if(texture == 0) {
-				util::ERROR("Failed to load tileset texture file: \"" + ts.getImagePath() + "\"!");
+				util::ERR("Failed to load tileset texture file: \"" + ts.getImagePath() + "\"!");
 			}
 			util::INFO("Loaded tileset texture: " + ts.getImagePath());
 			m_tilesetTextures.push_back(texture);
@@ -184,7 +184,7 @@ namespace map {
 			if(layerType == tmx::Layer::Type::Tile) {
 			} else if(layerType == tmx::Layer::Type::Group) {
 				util::INFO("Creating map layer: index="+std::to_string(layerIndex)+", type=Group, Name=\"" + m_map->getLayers()[layerIndex]->getName() + "\"");
-				util::WARNING("Group layers are not supported in tmx-maps");
+				util::WARN("Group layers are not supported in tmx-maps");
 			} else if(layerType == tmx::Layer::Type::Image) {
 				const tmx::ImageLayer& layer = *dynamic_cast<tmx::ImageLayer*>(m_map->getLayers()[layerIndex].get());
 				auto imgPath = layer.getImagePath();
@@ -192,7 +192,7 @@ namespace map {
 					auto texture = loadTexture(imgPath);
 					texture->setRepeat(true);
 					if(texture == 0) {
-						util::ERROR("Failed to load image texture file: \"" + imgPath + "\"!");
+						util::ERR("Failed to load image texture file: \"" + imgPath + "\"!");
 					}
 					util::INFO("Loaded image texture: " + imgPath);
 					m_imageTextures.push_back(texture);
@@ -201,10 +201,10 @@ namespace map {
 				}
 			} else if(layerType == tmx::Layer::Type::Object) {
 				util::INFO("Creating map layer: index="+std::to_string(layerIndex)+", type=Object, Name=\"" + m_map->getLayers()[layerIndex]->getName() + "\"");
-				util::WARNING("Object layers are not supported in tmx-maps");
+				util::WARN("Object layers are not supported in tmx-maps");
 			} else {
 				util::INFO("Creating map layer: index="+std::to_string(layerIndex)+", type=Unknown, Name=\"" + m_map->getLayers()[layerIndex]->getName() + "\"");
-				util::ERROR("Unknown layer type in tmx-map!");
+				util::ERR("Unknown layer type in tmx-map!");
 			}
 		}
 
@@ -218,16 +218,16 @@ namespace map {
 				m_allLayersMap.push_back({0,m_tileLayers.size()});
 				m_tileLayers.push_back(std::make_shared<TileLayer>(*m_map, i, m_tilesetTextures));
 			} else if(layerType == tmx::Layer::Type::Group) {
-				util::WARNING("Group layers are not supported in tmx-maps");
+				util::WARN("Group layers are not supported in tmx-maps");
 			} else if(layerType == tmx::Layer::Type::Image) {
 				m_layerNames[layers[i]->getName()] = i;
 				layerNames.push_back(layers[i]->getName());
 				m_allLayersMap.push_back({1,m_bgLayers.size()});
 				m_bgLayers.push_back(std::make_shared<ImageLayer>(*m_map, i, m_imageTextures));
 			} else if(layerType == tmx::Layer::Type::Object) {
-				util::WARNING("Object layers are not supported in tmx-maps");
+				util::WARN("Object layers are not supported in tmx-maps");
 			} else {
-				util::ERROR("Unknown layer type in tmx-map!");
+				util::ERR("Unknown layer type in tmx-map!");
 			}
 		}
 	}
@@ -260,13 +260,13 @@ namespace map {
 
 		// Check map layer collisions
 		auto layer = getLayerIndex("PlatformTiles");
-		posX += 0.5;
-		posY += 0.5;
+		posX += 0.5f;
+		posY += 0.5f;
 		V = glm::vec3(0);
-		auto left	= posX - 0.5;
-		auto right	= posX + 0.5;
-		auto bottom	= posY - 0.5;
-		auto top	= posY + 0.5;
+		auto left	= posX - 0.5f;
+		auto right	= posX + 0.5f;
+		auto bottom	= posY - 0.5f;
+		auto top	= posY + 0.5f;
 		// bottom half
 		//util::INFO("x="+std::to_string(posX)+"y="+std::to_string(posY));
 		if(getTileId(layer, right, bottom)) {
@@ -313,16 +313,20 @@ namespace map {
 	size_t Map::getLayerIndex(const std::string& name) const {
 		auto it = m_layerNames.find(name);
 		if(it == m_layerNames.end()) {
-			util::ERROR("Required layer named \n"+name+"\n not found from map");
+			util::ERR("Required layer named \n"+name+"\n not found from map");
 		}
 		return it->second;
 	}
 
-	const int Map::getTileId(size_t layerId, size_t x, size_t y) const {
+	const int Map::getTileId(size_t layerId, float x, float y) const {
+		assert(x >= 0.0f && y >= 0.0f);
 		auto tileLayerId = m_allLayersMap[layerId][1];
 		assert(tileLayerId < m_tileLayers.size());
 		const auto& layer = m_tileLayers[tileLayerId];
-		return layer->tileIds[y][x];
+		size_t ix = size_t(x);
+		size_t iy = size_t(y);
+		assert(iy < layer->tileIds.size() && ix < layer->tileIds[iy].size());
+		return layer->tileIds[iy][ix];
 	}
 
 	template<typename Subset>
@@ -333,7 +337,7 @@ namespace map {
 		if(subset.parallaxFactor.x == 1.0f) {
 			paralX = 0;
 		} else if(subset.parallaxFactor.x < 1.0f) {
-			paralX = (subset.parallaxFactor.x/1.0) * cameraDelta.x;
+			paralX = (subset.parallaxFactor.x/1.0f) * cameraDelta.x;
 		} else {
 			paralX = subset.parallaxFactor.x * cameraDelta.x;
 		}
@@ -341,13 +345,13 @@ namespace map {
 		if(subset.parallaxFactor.y == 1.0f) {
 			paralY = 0;
 		} else if(subset.parallaxFactor.y < 1.0f) {
-			paralY = (subset.parallaxFactor.y/1.0) * cameraDelta.y;
+			paralY = (subset.parallaxFactor.y/1.0f) * cameraDelta.y;
 		} else {
 			paralY = subset.parallaxFactor.y * cameraDelta.y;
 		}
 		// Set map properties
 		shader.setUniformm("P",			&matProjection[0], false);
-		shader.setUniform( "offset",	subset.offset.x, subset.offset.y);
+		shader.setUniform( "offset",	float(subset.offset.x), float(subset.offset.y));
 		shader.setUniform( "opacity",	subset.opacity);
 		shader.setUniform( "parallax",	-paralX, paralY);
 	}
@@ -356,7 +360,7 @@ namespace map {
 		auto& subset = layer.subset;
 		if(subset.used) {
 			applyLayerSubset(subset, shader, matProjection, cameraDelta);
-			shader.setUniform("repeat", subset.repeat.x, subset.repeat.y);
+			shader.setUniform("repeat", float(subset.repeat.x), float(subset.repeat.y));
 			shader.setUniform("image", 0);
 			subset.texture->bind(0);
 			assert(subset.mesh != 0);
@@ -368,8 +372,8 @@ namespace map {
 		for(const auto& subset : layer.subsets)	{
 			if(subset.used) {
 				applyLayerSubset(subset, shader, matProjection, cameraDelta);
-				shader.setUniform("tileSize", subset.tileSize.x, subset.tileSize.y);
-				shader.setUniform("tilesetSize", subset.tilesetSize.x, subset.tilesetSize.y);
+				shader.setUniform("tileSize", float(subset.tileSize.x), float(subset.tileSize.y));
+				shader.setUniform("tilesetSize", float(subset.tilesetSize.x), float(subset.tilesetSize.y));
 				shader.setUniform("lookupMap", 0);
 				subset.colorLookup->bind(0);
 				shader.setUniform("tileMap", 1);

@@ -68,8 +68,8 @@ namespace screen {
 
 		// Create FBOs
 		m_shadeFbo = std::make_unique<graphics::FrameBuffer>();
-		const float sx = right-left;
-		const float sy = top-bottom;
+		const int sx = int(right-left);
+		const int sy = int(top-bottom);
 		m_shadeFbo->addColorTexture(0, std::make_shared<texture::Texture>(std::abs(sx), std::abs(sy), false));
 		return m_projection;
 	}

@@ -30,7 +30,7 @@ namespace phys {
 		auto deltaTime = dt;
 		auto resBody = body;
 		for(size_t i=0; i<5; ++i){
-			const float step = 0.5*deltaTime;
+			const float step = 0.5f*deltaTime;
 			auto [newBody, collision] = euler(body, deltaTime);
 			if(glm::dot(collision,collision) > 0) {
 				// If collides at first step, set impulse:
@@ -121,7 +121,7 @@ namespace body {
 		for(const auto& filename : cfg.characterTextureFiles) {
 			auto texture = f.loadTexture(filename, false);
 			if(texture== 0) {
-				util::ERROR("Failed to load object texture file: \"" + filename + "\"!");
+				util::ERR("Failed to load object texture file: \"" + filename + "\"!");
 			}
 			util::INFO("Loaded object texture: " + filename);
 			world.characterTextures.push_back(texture);
@@ -131,7 +131,7 @@ namespace body {
 		for(const auto& filename : cfg.itemTextureFiles) {
 			auto texture = f.loadTexture(filename, false);
 			if(texture== 0) {
-				util::ERROR("Failed to load item textures: \"" + filename + "\"!");
+				util::ERR("Failed to load item textures: \"" + filename + "\"!");
 			}
 			util::INFO("Loaded item texture: " + filename);
 			world.itemTextures.push_back(texture);
@@ -146,7 +146,7 @@ namespace body {
 
 	namespace character {
 		struct Input {
-			float dx;
+			int dx;
 			bool accelerate;
 			bool wantJump;
 		};
@@ -165,7 +165,7 @@ namespace body {
 		};
 
 		template<typename Character, typename CollisionFunc>
-		auto update(const CollisionFunc& collisionFunc, const Character oldCharacter, float dx, bool accelerate, bool wantJump, float dt) {
+		auto update(const CollisionFunc& collisionFunc, const Character oldCharacter, int dx, bool accelerate, bool wantJump, float dt) {
 			// Constants for actions:
 			const float VX_ACC = 20;
 			const float VX_BREAK = 20;
@@ -408,9 +408,9 @@ namespace app {
 
 	auto to_mat(glm::mat4 m){
 		std::vector< std::vector<float> > mat;
-		for(size_t i=0; i<4; ++i) {
+		for(auto i=0; i<4; ++i) {
 			mat.push_back(std::vector<float>());
-			for(size_t j=0; j<4; ++j) {
+			for(auto j=0; j<4; ++j) {
 				mat[i].push_back(m[i][j]);
 			}
 		}
@@ -419,8 +419,8 @@ namespace app {
 
 	auto to_vec(glm::mat4 mat){
 		std::vector<float> v;
-		for(size_t i=0; i<4; ++i) {
-			for(size_t j=0; j<4; ++j) {
+		for(auto i=0; i<4; ++i) {
+			for(auto j=0; j<4; ++j) {
 				v.push_back(mat[i][j]);
 			}
 		}

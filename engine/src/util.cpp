@@ -34,12 +34,12 @@ namespace util {
 		fflush(stdout);
 	}
 
-	void WARNING(const std::string& text) {
+	void WARN(const std::string& text) {
 		printf("WARNING: %s\n", text.c_str());
 		fflush(stdout);
 	}
 
-	void ERROR(const std::string& text) {
+	void ERR(const std::string& text) {
 		printf("ERROR: %s\n", text.c_str());
 		fflush(stdout);
 		throw std::runtime_error("ERROR: " + text);

@@ -108,7 +108,8 @@ namespace map {
 		size2d_t getTileSize() const;
 		const size_t getNumLayers() const;
 		size_t getLayerIndex(const std::string& name) const;
-		const int getTileId(size_t layer, size_t x, size_t y) const;
+
+		const int getTileId(size_t layer, float x, float y) const;
 
 		const auto& getImageLayers() const {
 			return m_bgLayers;

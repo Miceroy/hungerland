@@ -126,7 +126,7 @@ namespace shader {
 			// If failed, get error string using glGetShaderInfoLog-function.
 			glGetShaderInfoLog(vertexShader, 512, 0, infoLog);
 			checkGLError();
-			util::ERROR("Vertex shader compilation failed: \"" + std::string(infoLog) + "\"");
+			util::ERR("Vertex shader compilation failed: \"" + std::string(infoLog) + "\"");
 		}
 
 		// Create and compile fragment shader
@@ -144,7 +144,7 @@ namespace shader {
 			// If failed, get error string using glGetShaderInfoLog-function.
 			glGetShaderInfoLog(fragmentShader, 512, 0, infoLog);
 			checkGLError();
-			util::ERROR("Fragment shader compilation failed: \"" + std::string(infoLog) + "\"");
+			util::ERR("Fragment shader compilation failed: \"" + std::string(infoLog) + "\"");
 		}
 
 		// link shaders
@@ -163,7 +163,7 @@ namespace shader {
 			// If failed, get error string using glGetProgramInfoLog-function.
 			glGetProgramInfoLog(m_shaderProgram, 512, 0, infoLog);
 			checkGLError();
-			util::ERROR("Shader link failed: \"" + std::string(infoLog) + "\"");
+			util::ERR("Shader link failed: \"" + std::string(infoLog) + "\"");
 		}
 
 		// After linking, the shaders can be deleted.

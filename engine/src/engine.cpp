@@ -26,10 +26,10 @@
 #include <hungerland/texture.h>
 #include <hungerland/mesh.h>
 #include <hungerland/engine.h>
+#include <glad/gl.h>
 #include <GLFW/glfw3.h>		// Include glfw
-//#include <glad/gl.h>		// Include glad
-#include <chrono>			// for Timer
 #include <hungerland/util.h>
+#include <stdexcept>
 
 // Miniaudio
 #define MINIAUDIO_IMPLEMENTATION
@@ -80,7 +80,7 @@ namespace engine {
 	void Engine::playSound(const std::string& fileName) {
 		auto result = ma_engine_play_sound(m_audioEngine, fileName.c_str(), NULL);
 		if (result != MA_SUCCESS) {
-			ERROR("Failed to play sound from file: \""+fileName+"\"!");
+			util::ERR("Failed to play sound from file: \""+fileName+"\"!");
 		}
 	}
 }

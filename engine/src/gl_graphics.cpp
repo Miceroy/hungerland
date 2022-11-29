@@ -48,7 +48,7 @@ namespace hungerland {
 				}
 			};
 			printf("OpenGL Error (%d): \"%s\"\n", (int)err, getErrorString(err));
-			util::ERROR("OpenGL Error ("+std::to_string(err) + "): " + getErrorString(err));
+			util::ERR("OpenGL Error ("+std::to_string(err) + "): " + getErrorString(err));
 		}
 	}
 

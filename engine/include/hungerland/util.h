@@ -37,16 +37,16 @@ namespace util {
 	void INFO(const std::string& text) ;
 
 	///
-	/// \brief WARNING
+	/// \brief WARN
 	/// \param text
 	///
-	void WARNING(const std::string& text) ;
+	void WARN(const std::string& text) ;
 
 	///
-	/// \brief ERROR
+	/// \brief ERR
 	/// \param text
 	///
-	void ERROR(const std::string& text) ;
+	void ERR(const std::string& text) ;
 
 	///
 	/// \brief readFile
@@ -98,7 +98,7 @@ namespace util {
 
 	static inline void fassert(bool cond, std::string expr, std::string func, std::string file, int line) {
 		if(cond) {
-			hungerland::util::ERROR("Assertation failed at file (Line:+line+): \"" + file+ "\"");
+			hungerland::util::ERR("Assertation failed at file (Line:+line+): \"" + file+ "\"");
 		}
 	}
 } // End - namespace util
