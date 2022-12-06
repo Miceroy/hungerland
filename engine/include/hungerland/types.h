@@ -30,8 +30,27 @@
 #include <array>
 
 namespace hungerland {
-	typedef std::size_t size_t;
 
+	namespace aabb {
+		template<typename Vec>
+		struct AABB {
+			Vec p;
+			Vec hs;
+		};
 
+		template<typename Vec>
+		static inline auto createAABB(const Vec& p, const Vec& hs) {
+			return AABB<Vec>{p, hs};
+		}
+
+		template<typename Vec, typename AABB, typename AbsFunc>
+		static inline auto getOverlap(AbsFunc absf, const AABB& o1, const AABB& o2) {
+			auto d = o2.p - o1.p;
+			d.x = std::abs(d.x);
+			d.y = std::abs(d.y);
+			d.z = std::abs(d.z);
+			return o1.hs + o2.hs - d;
+		}
+	}
 
 }

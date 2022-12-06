@@ -242,68 +242,100 @@ namespace map {
 		return {s.x, s.y};
 	}
 
-	glm::vec3 Map::checkCollision(const glm::vec3 position, glm::vec3 halfSize) const {
+
+	Map::MapCollision Map::checkCollision(const glm::vec3 position, glm::vec3 halfSize) const {
 		// Ckeck map limits
 		auto mapSize = getMapSize();
 		mapSize.x -= 1;
 		mapSize.y -= 1;
-		float posX = position.x;
-		float posY = position.y;
-		glm::vec3 V(0);
-		if(posX < 0)			V.x =  3;
-		if(posX > mapSize.x)	V.x = -3;
-		if(posY < 0)			V.y =  3;
-		if(posY > mapSize.y)	V.y = -3;
-		if(glm::dot(V,V) > 0) {
-			return V;
+
+		MapCollision colMap = util::gridN(3, glm::vec3(-1));
+		auto set = [&colMap](size2d_t p, glm::vec3 val) {
+			auto getValue = [](float m, float v){
+				//float S = 0.00001f;
+				//if(v <= S && v >= -S) v=0;
+				if(v >= 0 && m < 0) {
+					return v;
+				} else if(v < 0 && m < 0) {
+					return glm::max(v, m);
+				} else if(v >= 0 && m >= 0) {
+					return glm::min(v, m);
+				}
+				return m;
+			};
+			colMap[p.y][p.x].x = getValue(colMap[p.y][p.x].x, val.x);
+			colMap[p.y][p.x].y = getValue(colMap[p.y][p.x].y, val.y);
+			colMap[p.y][p.x].z = getValue(colMap[p.y][p.x].z, val.z);
+		};
+
+		auto getOverlap = [this](int2d_t mapDir, glm::vec3 position, const glm::vec3& halfSize) {
+			auto layer = getLayerIndex("PlatformTiles");
+			//position -= glm::vec3(0.5, 0.5, 0.0);
+			int2d_t pos = {int(position.x+0.5f),int(position.y+0.5f)};
+			int mx = mapDir.x + pos.x;
+			int my = mapDir.y + pos.y;
+			if(getTileId(layer, mx, my) > 0) {
+				auto o1 = aabb::createAABB(glm::vec3(position.x, position.y, 0.0f), halfSize);
+				auto o2 = aabb::createAABB(glm::vec3(float(mx), float(my), 0.0f), glm::vec3(0.5f));
+				auto abs = [](glm::vec3 v) { return glm::abs(v); };
+				auto d = aabb::getOverlap<glm::vec3>(abs, o1, o2);
+				if(d.x >= 0.0f && d.y >= 0.0f && d.z >= 0.0f) {
+					return d;
+				}
+			}
+			return glm::vec3(-1);
+		};
+
+		// Check map limits:
+		if(position.x <= 0.0f) {
+			auto dx = 0.0f-position.x;
+			auto d = glm::vec3(dx,-1,-1);
+			// Left col
+			set({0,0},d);
+			set({0,1},d);
+			set({0,2},d);
+		}
+		if(position.x >= mapSize.x) {
+			auto dx = position.x-mapSize.x;
+			auto d = glm::vec3(dx,-1,-1);
+			// Right col
+			set({2,0},d);
+			set({2,1},d);
+			set({2,2},d);
+		}
+		if(position.y <= 0.0f) {
+			auto dy = 0.0f-position.y;
+			auto d = glm::vec3(-1,dy,-1);
+			// Bottom row
+			set({0,0},d);
+			set({1,0},d);
+			set({2,0},d);
+		}
+		if(position.y >= mapSize.y) {
+			auto dy = position.y-mapSize.y;
+			auto d = glm::vec3(-1,dy,-1);
+			// Top row
+			set({0,2},d);
+			set({1,2},d);
+			set({2,2},d);
 		}
 
-		// Check map layer collisions
-		auto layer = getLayerIndex("PlatformTiles");
-		posX += 0.5f;
-		posY += 0.5f;
-		V = glm::vec3(0);
-		auto left	= posX - 0.5f;
-		auto right	= posX + 0.5f;
-		auto bottom	= posY - 0.5f;
-		auto top	= posY + 0.5f;
-		// bottom half
-		//util::INFO("x="+std::to_string(posX)+"y="+std::to_string(posY));
-		if(getTileId(layer, right, bottom)) {
-			V.x -= 1;
-			V.y += 1;
-		}
-		if(getTileId(layer, posX, bottom)) {
-			V.x += 0;
-			V.y += 1;
-		}
-		if(getTileId(layer, left, bottom)) {
-			V.x += 1;
-			V.y += 1;
-		}
-		// top half
-		if(getTileId(layer, left, top)) {
-			V.x += 1;
-			V.y -= 1;
-		}
-		if(getTileId(layer, posX, top)) {
-			V.x -= 0;
-			V.y -= 1;
-		}
-		if(getTileId(layer, right, top)) {
-			V.x -= 1;
-			V.y -= 1;
-		}
-		// Left / right
-		if(getTileId(layer, left, posY)) {
-			V.x += 1;
-			V.y += 0;
-		}
-		if(getTileId(layer, right, posY)) {
-			V.x -= 1;
-			V.y -= 0;
-		}
-		return V;
+		// Top row
+		set({0,2}, getOverlap({-1, 1}, position, halfSize));
+		set({1,2}, getOverlap({ 0, 1}, position, halfSize));
+		set({2,2}, getOverlap({ 1, 1}, position, halfSize));
+
+		// Middle row
+		set({0,1}, getOverlap({-1, 0}, position, halfSize));
+		set({1,1}, getOverlap({ 0, 0}, position, halfSize));
+		set({2,1}, getOverlap({ 1, 0}, position, halfSize));
+
+		// Bottom row
+		set({0,0}, getOverlap({-1,-1}, position, halfSize));
+		set({1,0}, getOverlap({ 0,-1}, position, halfSize));
+		set({2,0}, getOverlap({ 1,-1}, position, halfSize));
+
+		return colMap;
 	}
 
 	const size_t Map::getNumLayers() const {
@@ -318,15 +350,17 @@ namespace map {
 		return it->second;
 	}
 
-	const int Map::getTileId(size_t layerId, float x, float y) const {
-		assert(x >= 0.0f && y >= 0.0f);
+	const int Map::getTileId(size_t layerId, size_t x, size_t y) const {
+		if(x < 0.0f || y < 0.0f) {
+			return -1;
+		}
 		auto tileLayerId = m_allLayersMap[layerId][1];
 		assert(tileLayerId < m_tileLayers.size());
 		const auto& layer = m_tileLayers[tileLayerId];
-		size_t ix = size_t(x);
-		size_t iy = size_t(y);
-		assert(iy < layer->tileIds.size() && ix < layer->tileIds[iy].size());
-		return layer->tileIds[iy][ix];
+		if(y >= layer->tileIds.size() || x >= layer->tileIds[y].size()) {
+			return -1;
+		}
+		return layer->tileIds[y][x];
 	}
 
 	template<typename Subset>
@@ -382,6 +416,17 @@ namespace map {
 				quad::drawImage(*subset.mesh);
 			}
 		}
+	}
+
+	bool isPenetrating(const Map::MapCollision& col) {
+		for(size_t i=0; i<col.size(); ++i) {
+			for(size_t j=0; j<col[i].size(); ++j) {
+				if(col[i][j].x > 0.0f || col[i][j].y > 0.0f) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	void draw(const Map& map, const std::vector<float>& matProjection, const glm::vec2& cameraDelta) {

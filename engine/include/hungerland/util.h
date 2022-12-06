@@ -81,7 +81,7 @@ namespace util {
 	///
 	template<typename T>
 	static inline auto gridNM(std::size_t N, std::size_t M, T value) {
-		return genNM<int>([&value](size_t x, size_t y){
+		return genNM<T>([&value](size_t x, size_t y){
 			return value;
 		}, N, M);
 	}
