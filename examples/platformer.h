@@ -327,72 +327,72 @@ namespace react {
 /// \ingroup platformer::agent
 ///
 namespace agent {
-		///
-		/// \brief The Input class
-		///
-		struct Input {
-			int dx;
-			int dy;
-			bool accelerate;
-			bool wantJump;
-		};
+	///
+	/// \brief The Input class
+	///
+	struct Input {
+		int dx;
+		int dy;
+		bool accelerate;
+		bool wantJump;
+	};
 
 
-		///
-		/// \brief update
-		/// \param character
-		/// \param map
-		/// \param input
-		/// \param dt
-		///
-		template<typename Character>
-		auto update(Character character, const map::Map& map, const Input& input, float dt) {
-			const auto V_MAX = glm::vec3(config::SX*config::VX_MAX, config::VY_MAX, 0);
-			const auto A_MAX = glm::vec3(config::SX*config::VX_ACC_GROUND, config::GY, 0);
+	///
+	/// \brief update
+	/// \param character
+	/// \param map
+	/// \param input
+	/// \param dt
+	///
+	template<typename Character>
+	auto update(Character character, const map::Map& map, const Input& input, float dt) {
+		const auto V_MAX = glm::vec3(config::SX*config::VX_MAX, config::VY_MAX, 0);
+		const auto A_MAX = glm::vec3(config::SX*config::VX_ACC_GROUND, config::GY, 0);
 
-			// Integrate character movement by GRAVITY:
-			character =  action::applyEnv(character, map, dt);
+		// Integrate character movement by GRAVITY:
+		character =  action::applyEnv(character, map, dt);
 
-			// Integrate character movement by totalForce and totalImpulse:
+		// Integrate character movement by totalForce and totalImpulse:
 
-			// Apply character movement:
-			{
-				if(input.wantJump && character.canJump) {
-					// Gound jump list/right
-					util::INFO("Jump");
-					auto I = glm::vec3(0, config::IY, 0);
-					character = action::applyImpulse(character, map, I, dt);
-				} else if(input.wantJump && !character.canJump && character.wallJump) {
-					// Gound jump list/right
-					util::INFO("Wall Jump");
-					auto I = glm::vec3(character.wallJump*config::IY, config::IY, 0);
-					character = action::applyImpulse(character, map, I, dt);
-				} else {
-					auto F = glm::vec3(0);
-					if((input.dx < 0 && character.canMoveL)
-					   || (input.dx > 0 && character.canMoveR)) {
-						// Move left:
-						if(character.isGrounded) {
-							util::INFO("Ground move x");
-							F.x += config::VX_ACC_GROUND * input.dx * (input.accelerate ? config::SX : 1);
-						} else {
-							util::INFO("Air move x");
-							F.x += config::VX_ACC_AIR * input.dx * (input.accelerate ? config::SX : 1);
-						}
-
+		// Apply character movement:
+		{
+			if(input.wantJump && character.canJump) {
+				// Gound jump list/right
+				util::INFO("Jump");
+				auto I = glm::vec3(0, config::IY, 0);
+				character = action::applyImpulse(character, map, I, dt);
+			} else if(input.wantJump && !character.canJump && character.wallJump) {
+				// Gound jump list/right
+				util::INFO("Wall Jump");
+				auto I = glm::vec3(character.wallJump*config::IY, config::IY, 0);
+				character = action::applyImpulse(character, map, I, dt);
+			} else {
+				auto F = glm::vec3(0);
+				if((input.dx < 0 && character.canMoveL)
+				   || (input.dx > 0 && character.canMoveR)) {
+					// Move left:
+					if(character.isGrounded) {
+						util::INFO("Ground move x");
+						F.x += config::VX_ACC_GROUND * input.dx * (input.accelerate ? config::SX : 1);
 					} else {
-						// Friction x:
-						util::INFO("Friction x");
-						F.x -= character.velocity.x * config::VX_BREAK;
+						util::INFO("Air move x");
+						F.x += config::VX_ACC_AIR * input.dx * (input.accelerate ? config::SX : 1);
 					}
-					// Integrate:
-					character = action::applyForce(character, map, F, dt);
-				}
-			}
 
-			//util::INFO("Endframe");
-			return character;
-		};
+				} else {
+					// Friction x:
+					util::INFO("Friction x");
+					F.x -= character.velocity.x * config::VX_BREAK;
+				}
+				// Integrate:
+				character = action::applyForce(character, map, F, dt);
+			}
+		}
+
+		//util::INFO("Endframe");
+		return character;
+	};
 } // End - namespace platformer::agent
 
 
@@ -454,7 +454,7 @@ namespace  env {
 	template<typename World, typename Ctx, typename Config>
 	void loadScene(Ctx* ctx, World& world, size_t index, const Config& cfg) {
 		// Create map layers by map and tileset.
-		world.tileMap = hungerland::map::load<hungerland::map::Map,Ctx>(ctx, cfg.mapFiles[index], false);
+		world.tileMap = hungerland::map::load<hungerland::map::Map>(ctx, cfg.mapFiles[index], false);
 
 		// Load object textures
 		for(const auto& filename : cfg.characterTextureFiles) {
