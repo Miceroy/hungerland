@@ -23,7 +23,7 @@ namespace my_game_app {
 	static const std::string GAME_VERSION = "v0.0.1";
 	static const std::string GAME_LONG_NAME = GAME_NAME + " " + GAME_VERSION;
 
-	static const app::Config CONFIG = {
+	static const view::Config CONFIG = {
 		BACKGROUND_FILES,
 		MAP_FILES,
 		CHARACTER_TEXTURE_FILES,
@@ -35,39 +35,35 @@ namespace my_game_app {
 // Main function
 int main() {
 	using namespace my_game_app;
-	using namespace hungerland;
+	using namespace platformer;
+
+	typedef model::World<model::Character> Model;
+	typedef window::Window View;
 
 	// Create application window and run it.
-	window::Window window({WINDOW_SIZE_X, WINDOW_SIZE_Y}, "");
-	app::Functor f;
-	typedef app::World<app::GameObject> World;
-	f.loadTexture = [&window](const std::string& fileName, bool repeat) {
-		auto texture = window.loadTexture(fileName);
-		if(repeat) {
-			texture->setRepeat(true);
-		}
-		return texture;
-	};
-	window.setTitle(GAME_LONG_NAME);
-
-	auto state = app::reset<World>(f, GAME_LONG_NAME, CONFIG);
+	View window({WINDOW_SIZE_X, WINDOW_SIZE_Y}, "");
+	auto state = env::reset<Model>(&window, GAME_LONG_NAME, CONFIG);
 	float totalTime = 0;
 	int lastFrame = -1;
-	return window.run([&](window::Window& window, float dt) {
+	return window.run([&](View& window, float dt) {
 		totalTime += dt;
 		auto& input = window.getInput();
 		if(int(totalTime) > lastFrame){
 			window.setTitle(GAME_LONG_NAME + "    FPS="+std::to_string(1.0f/dt).substr(0,5));
 			lastFrame = int(totalTime);
 		}
+		if(input.getKeyPressed(window::KEY_F5)) {
+			state = env::reset<Model>(&window, GAME_LONG_NAME, CONFIG);
+		}
 		// Configure input buttons:
-		platformer::character::Input playerInput;
+		agent::Input playerInput;
+		playerInput.dy			= input.getKeyState(window::KEY_UP)				- input.getKeyState(window::KEY_DOWN);
 		playerInput.dx			= input.getKeyState(window::KEY_RIGHT)			- input.getKeyState(window::KEY_LEFT);
 		playerInput.accelerate	= input.getKeyState(window::KEY_LEFT_SHIFT)		+ input.getKeyState(window::KEY_RIGHT_SHIFT);
 		playerInput.wantJump	= input.getKeyPressed(window::KEY_LEFT_CONTROL)	+ input.getKeyPressed(window::KEY_RIGHT_CONTROL);
-		state = platformer::update(state, f, playerInput, dt);
+		state = env::update<Model>(&window, state, playerInput, dt);
 		return true;
 	}, [&state,&window](screen::Screen& screen) {
-		app::render(screen, state);
+		view::render(screen, state);
 	});
 }

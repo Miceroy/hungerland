@@ -17,7 +17,7 @@ if(${HUNGERLAND_BUILD_EXAMPLES})
 	# Copy assets command
 	add_custom_command(TARGET PlatformerExample POST_BUILD
 		COMMAND ${CMAKE_COMMAND} -E copy_directory
-		${PROJECT_SOURCE_DIR}/assets
+		${PROJECT_SOURCE_DIR}/examples/platformer/assets
 		${PROJECT_BINARY_DIR}/assets
 		COMMENT "Copying PlatformerExample asset files to binary directory")
 endif()
