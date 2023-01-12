@@ -30,12 +30,13 @@ namespace my_game_app {
 		ITEM_TEXTURE_FILES
 	};
 }
-#include <hungerland/texture.h>
+#include <hungerland/window.h>
 
 // Main function
 int main() {
 	using namespace my_game_app;
 	using namespace platformer;
+	using namespace hungerland;
 
 	typedef model::World<model::Character> Model;
 	typedef window::Window View;
@@ -56,12 +57,12 @@ int main() {
 			state = env::reset<Model>(&window, GAME_LONG_NAME, CONFIG);
 		}
 		// Configure input buttons:
-		agent::Input playerInput;
-		playerInput.dy			= input.getKeyState(window::KEY_UP)				- input.getKeyState(window::KEY_DOWN);
-		playerInput.dx			= input.getKeyState(window::KEY_RIGHT)			- input.getKeyState(window::KEY_LEFT);
-		playerInput.accelerate	= input.getKeyState(window::KEY_LEFT_SHIFT)		+ input.getKeyState(window::KEY_RIGHT_SHIFT);
-		playerInput.wantJump	= input.getKeyPressed(window::KEY_LEFT_CONTROL)	+ input.getKeyPressed(window::KEY_RIGHT_CONTROL);
-		state = env::update<Model>(&window, state, playerInput, dt);
+		agent::Action playerAction;
+		playerAction.dy			= input.getKeyState(window::KEY_UP)				- input.getKeyState(window::KEY_DOWN);
+		playerAction.dx			= input.getKeyState(window::KEY_RIGHT)			- input.getKeyState(window::KEY_LEFT);
+		playerAction.accelerate	= input.getKeyState(window::KEY_LEFT_SHIFT)		+ input.getKeyState(window::KEY_RIGHT_SHIFT);
+		playerAction.wantJump	= input.getKeyPressed(window::KEY_LEFT_CONTROL)	+ input.getKeyPressed(window::KEY_RIGHT_CONTROL);
+		state = env::update<Model>(&window, state, playerAction, dt);
 		return true;
 	}, [&state,&window](screen::Screen& screen) {
 		view::render(screen, state);

@@ -24,6 +24,7 @@
 #pragma once
 #include <hungerland/types.h>
 #include <hungerland/math.h>
+#include <hungerland/texture.h>
 #include <map>
 
 namespace tmx {
@@ -218,7 +219,7 @@ namespace map {
 	std::shared_ptr<MapType> load(Ctx* ctx, const std::string& mapFile, bool repeat) {
 		return std::make_shared<MapType>(mapFile, [ctx,repeat](const std::string& imageFile) {
 			auto texture = ctx->loadTexture(imageFile);
-			texture->setRepeat(true);
+			texture->setRepeat(repeat);
 			return texture;
 		});
 	}

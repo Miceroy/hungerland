@@ -1,8 +1,3 @@
-#include <hungerland/util.h>
-#include <hungerland/map.h>
-#include <hungerland/window.h>
-#include <hungerland/math.h>
-
 ///
 /// Hungerland architecture for platformer game:
 ///
@@ -13,17 +8,18 @@
 ///
 ///		- Environment	= namespace platformer
 ///			- env::reset(f,cfg) -> World
-///			- env::update(f,world,input,dt) -> const World&
+///			- env::update(f,world,action,dt) -> const World&
 ///			- env::loadScene(f,world,index,cfg)
 ///
-///		- Actions		= namespace platformer
+///		- Env Actions	= namespace platformer
+///			- f(character, map, dS, dt) -> character
 ///			- action::applyEnv(character,map,dt) -> character
 ///         - action::applyForce(character,map,totalForce,dt) -> character
 ///			- action::applyImpulse(character,map,totalImpulse,dt) -> character
 ///
 ///		- Agent			= namespace: platformer
-///			- character::update(map,character,input,dt)
-///			- player::update(input,world,player,dt)
+///			- character::update(map,character,action,dt)
+///			- player::update(action,world,player,dt)
 ///			- camera::update(world,camera,dt)
 ///
 /// Model(s):
@@ -37,8 +33,6 @@
 ///		- Main			= cpp
 ///
 ///
-namespace math = glm;
-using namespace hungerland;
 
 
 
@@ -51,8 +45,8 @@ namespace platformer {
 /// Platformer game configuration:
 ///=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 	/// Pelin piirtoalueen x ja y koko pikseleinä:
-	static const size_t	SCREEN_SIZE_X = 1920;
-	static const size_t	SCREEN_SIZE_Y = 1080;
+	static const unsigned long	SCREEN_SIZE_X = 1920;
+	static const unsigned long	SCREEN_SIZE_Y = 1080;
 
 	/// Pelaajahahmon asetukset (suluissa suureen mittayksikkö):
 	namespace config {
@@ -125,15 +119,23 @@ namespace game {
 		return false; // This is toy for now...
 	};
 } // End - namespace platformer::game
+}
 
+
+#include <hungerland/math.h>
+namespace math = glm;
+#include <tuple>
+#include <hungerland/util.h>
+
+namespace  platformer {
 
 
 ///
 /// \ingroup platformer::env
 ///
 namespace env {
-	template<typename Body, typename PenetrateFunc, typename ReactFunc>
-	auto integrateBody(const Body& oldBody, const map::Map& map, PenetrateFunc isPenetrating, ReactFunc reactFunc, glm::vec3 F, glm::vec3 I, float dt) {
+	template<typename MapCollision, typename Map, typename Body, typename PenetrateFunc, typename ReactFunc>
+	auto integrateBody(const Body& oldBody, const Map& map, PenetrateFunc isPenetrating, ReactFunc reactFunc, glm::vec3 F, glm::vec3 I, float dt) {
 		assert(false == isPenetrating(map.checkCollision(oldBody.position,glm::vec3(0.5f))));
 
 		auto stepEuler = [&](Body body, float dt) {
@@ -147,7 +149,7 @@ namespace env {
 		auto b = oldBody;
 		const float TIME_TOL = 0.0001f;
 		while(dt > TIME_TOL) {
-			map::Map::MapCollision resCollision;
+			MapCollision resCollision;
 			auto deltaTime = dt;
 			float usedTime = 0;
 			auto resBody = b;
@@ -184,7 +186,50 @@ namespace env {
 		return b;
 	}
 
-	void print(map::Map::MapCollision collisions) {
+} // End - namespace platformer::env
+
+
+///
+/// \ingroup platformer::action
+///
+namespace action {
+namespace react {
+	template<typename MapCollision>
+	static inline auto getRowSum(const MapCollision& col, size_t y) {
+		float res = -1;
+		if(y<col.size()) {
+			for(size_t x=0; x<col[y].size(); ++x){
+				if(col[y][x].y >= 0.0f) {
+					if(res<0){
+						res = col[y][x].y;
+					} else {
+						res += col[y][x].y;
+					}
+				}
+			}
+		}
+		return res;
+	}
+
+	template<typename MapCollision>
+	static inline auto getColSum(const MapCollision& col, size_t x) {
+		float res = -1;
+		for(size_t y=0; y<col.size(); ++y) {
+			if(col[y][x].x >= 0.0f) {
+				if(res<0){
+					res = col[y][x].x;
+				} else {
+					res += col[y][x].x;
+				}
+			}
+		}
+		return res;
+	}
+
+
+	template<typename MapCollision>
+	void print(MapCollision collisions) {
+		using namespace hungerland;
 		if(collisions.size()==0){
 			collisions = util::gridN<glm::vec3>(3,glm::vec3(-1));
 		}
@@ -212,10 +257,10 @@ namespace env {
 			}
 			util::INFO(row+"}");
 		}
-		float bottom = map::getRowSum(collisions, 0);
-		float top = map::getRowSum(collisions, 2);
-		float left = map::getColSum(collisions, 0);
-		float right = map::getColSum(collisions, 2);
+		float bottom = getRowSum(collisions, 0);
+		float top = getRowSum(collisions, 2);
+		float left = getColSum(collisions, 0);
+		float right = getColSum(collisions, 2);
 
 		util::INFO("bottom=" + std::to_string(std::signbit(bottom))
 				   + " top=" + std::to_string(std::signbit(top))
@@ -223,22 +268,16 @@ namespace env {
 				   + " right=" + std::to_string(std::signbit(right))
 				   + "");
 	}
-} // End - namespace platformer::env
 
-
-///
-/// \ingroup platformer::action
-///
-namespace action {
-namespace react {
-	template<typename Character>
-	auto character(const Character& old, Character character, const map::Map::MapCollision& collisions) {
+	template<typename MapCollision, typename Character>
+	auto character(const Character& old, Character character, const MapCollision& collisions) {
+		using namespace hungerland;
 		util::INFO("Character reaction:");
-		env::print(collisions);
-		float bottom = map::getRowSum(collisions, 0);
-		float top = map::getRowSum(collisions, 2);
-		float left = map::getColSum(collisions, 0);
-		float right = map::getColSum(collisions, 2);
+		print(collisions);
+		float bottom = getRowSum(collisions, 0);
+		float top = getRowSum(collisions, 2);
+		float left = getColSum(collisions, 0);
+		float right = getColSum(collisions, 2);
 		character.isGrounded = bottom > 0.0f;
 		character.isTopped	 = top > 0.0f;
 		character.canMoveL	 = true;
@@ -248,8 +287,8 @@ namespace react {
 			character.canMoveR	 = collisions[1][2].x <= 0.0f;
 		}
 		character.canJump	 = character.isGrounded;
-		float wallLeft = map::getColSum(collisions, 0);
-		float wallRight = map::getColSum(collisions, 2);
+		float wallLeft = getColSum(collisions, 0);
+		float wallRight = getColSum(collisions, 2);
 		character.wallJump	 = 0;
 		character.wallJump	 *= !character.canJump;
 		util::INFO(std::string("Character:")
@@ -264,8 +303,8 @@ namespace react {
 		return character;
 	};
 
-	template<typename Character>
-	auto env(const Character& old, Character character, const map::Map::MapCollision& collisions) {
+	template<typename MapCollision, typename Character>
+	auto env(const Character& old, Character character, const MapCollision& collisions) {
 		character = react::character(old, character, collisions);
 		if(character.isTopped) {
 			character.velocity.y = -character.velocity.y;
@@ -286,16 +325,28 @@ namespace react {
 	};
 } // End - namespace action::react
 
+	template<typename MapCollision>
+	bool isPenetrating(const MapCollision& col) {
+		for(size_t i=0; i<col.size(); ++i) {
+			for(size_t j=0; j<col[i].size(); ++j) {
+				if(col[i][j].x > 0.0f || col[i][j].y > 0.0f) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	///
 	/// \brief applyEnv
 	/// \param character
 	/// \param map
 	/// \param dt
 	///
-	template<typename Character>
-	auto applyEnv(const Character& character, const map::Map& map, float dt) {
+	template<typename MapCollision, typename Map, typename Character>
+	auto applyEnv(const Character& character, const Map& map, float dt) {
 		const auto GRAVITY = glm::vec3(0, config::GY, 0);
-		return env::integrateBody(character, map, map::isPenetrating, react::env<Character>, GRAVITY, glm::vec3(0), dt);
+		return env::integrateBody<MapCollision>(character, map, isPenetrating<MapCollision>, react::env<MapCollision,Character>, GRAVITY, glm::vec3(0), dt);
 	};
 
 	///
@@ -305,9 +356,9 @@ namespace react {
 	/// \param totalForce
 	/// \param dt
 	///
-	template<typename Character>
-	auto applyForce(const Character& character, const map::Map& map, const glm::vec3& totalForce, float dt){
-		return env::integrateBody(character, map, map::isPenetrating, react::character<Character>, totalForce, glm::vec3(0), dt);
+	template<typename MapCollision, typename Map, typename Character>
+	auto applyForce(const Character& character, const Map& map, const glm::vec3& totalForce, float dt){
+		return env::integrateBody<MapCollision>(character, map, isPenetrating<MapCollision>, react::character<MapCollision,Character>, totalForce, glm::vec3(0), dt);
 	};
 
 	///
@@ -317,9 +368,9 @@ namespace react {
 	/// \param totalImpulse
 	/// \param dt
 	///
-	template<typename Character>
-	auto applyImpulse(const Character& character, const map::Map& map, const glm::vec3& totalImpulse, float dt){
-		return env::integrateBody(character, map, map::isPenetrating, react::character<Character>, glm::vec3(0), totalImpulse, dt);
+	template<typename MapCollision, typename Map, typename Character>
+	auto applyImpulse(const Character& character, const Map& map, const glm::vec3& totalImpulse, float dt){
+		return env::integrateBody<MapCollision>(character, map, isPenetrating<MapCollision>, react::character<MapCollision,Character>, glm::vec3(0), totalImpulse, dt);
 	};
 } // End namespace platformer::action
 
@@ -328,9 +379,9 @@ namespace react {
 ///
 namespace agent {
 	///
-	/// \brief The Input class
+	/// \brief The Action class
 	///
-	struct Input {
+	struct Action {
 		int dx;
 		int dy;
 		bool accelerate;
@@ -345,39 +396,40 @@ namespace agent {
 	/// \param input
 	/// \param dt
 	///
-	template<typename Character>
-	auto update(Character character, const map::Map& map, const Input& input, float dt) {
+	template<typename MapCollision, typename Map, typename Character>
+	auto update(Character character, const Map& map, const Action& action, float dt) {
+		using namespace hungerland;
 		const auto V_MAX = glm::vec3(config::SX*config::VX_MAX, config::VY_MAX, 0);
 		const auto A_MAX = glm::vec3(config::SX*config::VX_ACC_GROUND, config::GY, 0);
 
 		// Integrate character movement by GRAVITY:
-		character =  action::applyEnv(character, map, dt);
+		character =  action::applyEnv<MapCollision>(character, map, dt);
 
 		// Integrate character movement by totalForce and totalImpulse:
 
 		// Apply character movement:
 		{
-			if(input.wantJump && character.canJump) {
+			if(action.wantJump && character.canJump) {
 				// Gound jump list/right
 				util::INFO("Jump");
 				auto I = glm::vec3(0, config::IY, 0);
-				character = action::applyImpulse(character, map, I, dt);
-			} else if(input.wantJump && !character.canJump && character.wallJump) {
+				character = action::applyImpulse<MapCollision>(character, map, I, dt);
+			} else if(action.wantJump && !character.canJump && character.wallJump) {
 				// Gound jump list/right
 				util::INFO("Wall Jump");
 				auto I = glm::vec3(character.wallJump*config::IY, config::IY, 0);
-				character = action::applyImpulse(character, map, I, dt);
+				character = action::applyImpulse<MapCollision>(character, map, I, dt);
 			} else {
 				auto F = glm::vec3(0);
-				if((input.dx < 0 && character.canMoveL)
-				   || (input.dx > 0 && character.canMoveR)) {
+				if((action.dx < 0 && character.canMoveL)
+				   || (action.dx > 0 && character.canMoveR)) {
 					// Move left:
 					if(character.isGrounded) {
 						util::INFO("Ground move x");
-						F.x += config::VX_ACC_GROUND * input.dx * (input.accelerate ? config::SX : 1);
+						F.x += config::VX_ACC_GROUND * action.dx * (action.accelerate ? config::SX : 1);
 					} else {
 						util::INFO("Air move x");
-						F.x += config::VX_ACC_AIR * input.dx * (input.accelerate ? config::SX : 1);
+						F.x += config::VX_ACC_AIR * action.dx * (action.accelerate ? config::SX : 1);
 					}
 
 				} else {
@@ -386,7 +438,7 @@ namespace agent {
 					F.x -= character.velocity.x * config::VX_BREAK;
 				}
 				// Integrate:
-				character = action::applyForce(character, map, F, dt);
+				character = action::applyForce<MapCollision>(character, map, F, dt);
 			}
 		}
 
@@ -406,17 +458,17 @@ namespace camera {
 	/// \param world
 	/// \param dt
 	///
-	template<typename World, typename Camera>
-	auto update(Camera camera, const World& world, float dt) {
+	template<typename Map, typename Vec, typename Camera>
+	auto update(Camera camera,  Map& map, const Vec& targetPos, float dt) {
 		// Camera follows player y:
-		camera.position.y = world.player.position.y;
+		camera.position.y = targetPos.y;
 
 		// When player near map border, then move camera.
-		float dPosX = world.player.position.x-camera.position.x;
+		float dPosX = targetPos.x-camera.position.x;
 		if(dPosX > 7) {
-			camera.position.x = world.player.position.x - 7;
+			camera.position.x = targetPos.x - 7;
 		} else if(dPosX < -7) {
-			camera.position.x = world.player.position.x + 7;
+			camera.position.x = targetPos.x + 7;
 		}
 
 		auto clamp = [](float v, float min, float max) {
@@ -425,8 +477,8 @@ namespace camera {
 			return v;
 		};
 
-		auto mapSize = world.tileMap->getMapSize();
-		auto tileSize = world.tileMap->getTileSize();
+		auto mapSize = map->getMapSize();
+		auto tileSize = map->getTileSize();
 		float minCamX	= 15.0f; // Hmm... Riipuu ruudun leveydestä... Nyt toimii tuolla ihan ok.
 		float maxCamX	= mapSize.x - minCamX;
 		assert(minCamX <= maxCamX);
@@ -435,11 +487,17 @@ namespace camera {
 		assert(minCamY <= maxCamY);
 		camera.position.x = clamp(camera.position.x, minCamX, maxCamX);
 		camera.position.y = clamp(camera.position.y, minCamY, maxCamY);
-		util::INFO("Camera: pos=<"+std::to_string(camera.position.x)+","+std::to_string(camera.position.y)+">");
+		hungerland::util::INFO("Camera: pos=<"+std::to_string(camera.position.x)+","+std::to_string(camera.position.y)+">");
 		return camera;
 	};
 } // End - namespace platformer::camera
 
+}
+
+
+#include <hungerland/map.h>
+
+namespace platformer {
 ///
 /// \ingroup platformer::env
 ///
@@ -453,6 +511,7 @@ namespace  env {
 	///
 	template<typename World, typename Ctx, typename Config>
 	void loadScene(Ctx* ctx, World& world, size_t index, const Config& cfg) {
+		using namespace hungerland;
 		// Create map layers by map and tileset.
 		world.tileMap = hungerland::map::load<hungerland::map::Map>(ctx, cfg.mapFiles[index], false);
 
@@ -480,8 +539,8 @@ namespace  env {
 		auto mapSize = world.tileMap->getMapSize();
 		// and adjust camera and to center y and left of map.
 	#if 1
-		world.player.position = math::vec3(5, mapSize.y/2, 0);
-		world.camera.position = math::vec3(0, mapSize.y/2, 0);
+		world.players.push_back({math::vec3(5, mapSize.y/2, 0)});
+		world.observer.position = math::vec3(0, mapSize.y/2, 0);
 	#else
 		world.player.position = math::vec3(0, 0, 0);
 		world.camera.position = math::vec3(0, 0, 0);
@@ -513,15 +572,17 @@ namespace  env {
 	///
 	template<typename World, typename Ctx, typename Input>
 	const auto& update(Ctx* ctx, World& world, Input input, float dt) {
-		typedef decltype(world.player) Player;
+		typedef decltype(world.players) Players;
 #if defined(_WIN32)
 		system("cls");
 #else
 		system("clear");
 #endif
-		util::INFO("Platformer Frame: " + std::to_string(world.frameNum));
-		world.player = agent::update(world.player, *world.tileMap, input, dt);
-		world.camera = camera::update(world.camera, world, dt);
+		hungerland::util::INFO("Platformer Frame: " + std::to_string(world.frameNum));
+		for(auto& player : world.players){
+			player = agent::update<hungerland::map::Map::MapCollision>(player, *world.tileMap, input, dt);
+		}
+		world.observer = camera::update(world.observer, world.tileMap, world.players[0].position, dt);
 		/*printf("Player=<%2.2f, %2.2f> Camera=<%2.2f, %2.2f> Grounded:%d, Topped:%d, Walled:%d \n",
 			   world.player.position.x, world.player.position.y, world.camera.position.x, world.camera.position.y,
 			   world.player.grounded, world.player.topped, world.player.hitWall);*/
@@ -531,6 +592,7 @@ namespace  env {
 } // End - namespace platformer::env
 
 } // End - namespace platformer
+
 
 ///
 /// \ingroup view
@@ -551,8 +613,8 @@ namespace view {
 	/// \param screen
 	/// \param state
 	///
-	template<typename World>
-	void render(screen::Screen& screen, const World& state) {
+	template<typename Screen, typename World>
+	void render(Screen& screen, const World& state) {
 		static const auto MAP_OFFSET = glm::vec3(0.5, 0.5, 0);
 		using namespace platformer;
 
@@ -565,7 +627,7 @@ namespace view {
 
 
 		// Offset of half tiles to look at centers of tiles.
-		auto renderMapLayers = [](const map::Map& mapLayers, glm::mat4 matProj, const size2d_t& sizeInPixels, glm::vec3 cameraPosition) {
+		auto renderMapLayers = [](const hungerland::map::Map& mapLayers, glm::mat4 matProj, const hungerland::size2d_t& sizeInPixels, glm::vec3 cameraPosition) {
 			// Flip camera y and offset
 			cameraPosition.y =  mapLayers.getMapSize().y-cameraPosition.y-1;
 			// And offset
@@ -574,11 +636,11 @@ namespace view {
 			auto mat = glm::translate(glm::mat4(1), mapScreenPos);
 			matProj = glm::translate(matProj, 0.5f * scale);
 			auto cameraDelta = cameraPosition * scale;
-			map::draw(mapLayers, to_vec(matProj*glm::inverse(mat)), cameraDelta);
+			hungerland::map::draw(mapLayers, to_vec(matProj*glm::inverse(mat)), cameraDelta);
 			return matProj;
 		};
 
-		auto renderSprite = [](screen::Screen& screen, const glm::mat4& matProj, const size2d_t& sizeInPixels, const glm::vec3& cameraPosition, glm::vec3 position, const texture::Texture* texture) {
+		auto renderSprite = [](Screen& screen, const glm::mat4& matProj, const hungerland::size2d_t& sizeInPixels, const glm::vec3& cameraPosition, glm::vec3 position, const hungerland::texture::Texture* texture) {
 			// Flip x and y
 			position.x = position.x - cameraPosition.x;
 			position.y = cameraPosition.y - position.y;
@@ -594,11 +656,11 @@ namespace view {
 
 		// Render Tilemap
 		projection = renderMapLayers(*state.tileMap, projection, state.tileMap->getTileSize(),
-					state.camera.position);
+					state.observer.position);
 		// Render Player
 		renderSprite(screen, projection, state.tileMap->getTileSize(),
-					state.camera.position,
-					state.player.position, state.characterTextures[0].get());
+					state.observer.position,
+					state.players[0].position, state.characterTextures[0].get());
 	}
 
 
@@ -620,12 +682,12 @@ namespace model {
 	template<typename GameObject>
 	struct World {
 		std::string sceneName;
-		std::vector<std::shared_ptr<texture::Texture> > characterTextures;
-		std::vector<std::shared_ptr<texture::Texture> > itemTextures;
-		std::shared_ptr<map::Map> tileMap;
-		GameObject camera;
-		GameObject player;
-		std::vector<GameObject> actors;
+		std::vector<std::shared_ptr<hungerland::texture::Texture> > characterTextures;
+		std::vector<std::shared_ptr<hungerland::texture::Texture> > itemTextures;
+		std::shared_ptr<hungerland::map::Map> tileMap;
+		GameObject observer;
+		std::vector<GameObject> players;
+		std::vector<GameObject> nonPlayers;
 		size_t frameNum = 0;
 	};
 
