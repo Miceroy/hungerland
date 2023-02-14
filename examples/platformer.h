@@ -640,7 +640,7 @@ namespace view {
 			return matProj;
 		};
 
-		auto renderSprite = [](Screen& screen, const glm::mat4& matProj, const hungerland::size2d_t& sizeInPixels, const glm::vec3& cameraPosition, glm::vec3 position, const hungerland::texture::Texture* texture) {
+		auto renderSprite = [](Screen& screen, const glm::mat4& matProj, const hungerland::size2d_t& sizeInPixels, const glm::vec3& cameraPosition, glm::vec3 position, const hungerland::texture::Texture& texture) {
 			// Flip x and y
 			position.x = position.x - cameraPosition.x;
 			position.y = cameraPosition.y - position.y;
@@ -660,7 +660,7 @@ namespace view {
 		// Render Player
 		renderSprite(screen, projection, state.tileMap->getTileSize(),
 					state.observer.position,
-					state.players[0].position, state.characterTextures[0].get());
+					state.players[0].position, *state.characterTextures[0]);
 	}
 
 
