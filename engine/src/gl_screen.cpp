@@ -42,6 +42,9 @@ namespace screen {
 		// Create sprite and screen size quad meshes
 		m_ssqShader = shaders::createPasstrough();
 		m_sprite = quad::createSprite(0.5, 0.5);
+		// Enable alpha blending:
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
 
 	void Screen::clear(float r, float g, float b, float a) {
@@ -74,14 +77,14 @@ namespace screen {
 		return m_projection;
 	}
 
-	void Screen::drawSprite(const glm::mat4& matModel, const texture::Texture* texture, const std::vector<shader::Constant>& constants, const std::string& surfaceShader, const std::string& globals) {
+	void Screen::drawSprite(const glm::mat4& matModel, const texture::Texture& texture, const std::vector<shader::Constant>& constants, const std::string& surfaceShader, const std::string& globals) {
 		auto spriteShader = shaders::createSprite(constants, surfaceShader, globals);
 		spriteShader->use([&](shader::ShaderPass shader) {
 			shader.setUniformm("P", &m_projection[0][0]);
 			shader.setUniformm("M", &matModel[0][0]);
 			shader.setUniform("texture0", 0);
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, texture->getId());
+			glBindTexture(GL_TEXTURE_2D, texture.getId());
 			for(auto& c : constants){
 				shader.setUniformv(c.first,c.second);
 			}

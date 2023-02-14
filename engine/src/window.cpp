@@ -41,19 +41,15 @@
 
 namespace hungerland {
 namespace window {
-	struct Image {
-		Image(const std::string& fileName) {
-			data = stbi_load(fileName.c_str(), &size.x, &size.y, &bpp, 0);
-		}
+	Image::Image(const std::string& fileName) {
+		data = stbi_load(fileName.c_str(), &size.x, &size.y, &bpp, 0);
+	}
 
-		~Image() {
-			stbi_image_free(data);
-		}
+	Image::~Image() {
+		stbi_image_free(data);
+	}
 
-		int2d_t size = {0, 0};
-		int bpp = 0;
-		uint8_t *data = 0;
-	};
+
 
 	class Timer {
 	public:
@@ -109,13 +105,14 @@ namespace window {
 
 	std::unique_ptr<engine::Engine> g_engine;
 
-	Window::Window(size2d_t size, const std::string& title)
+	Window::Window(size2d_t size, const std::string& title, bool resizable)
 		: m_size(size)
 		, m_window(0)
 	{
 		if(!g_engine) g_engine = std::make_unique<engine::Engine>();
 		// Create window and check that creation was succesful.
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
+		glfwWindowHint(GLFW_RESIZABLE, resizable ? GLFW_TRUE : GLFW_FALSE);
 		m_window = glfwCreateWindow(int(m_size.x), int(m_size.y), title.c_str(), 0, 0);
 		if (!m_window) {
 			throw std::runtime_error("Failed to create window!");
@@ -149,6 +146,7 @@ namespace window {
 		int screenWidth, screenHeight;
 		glfwGetFramebufferSize(m_window, &screenWidth, &screenHeight);
 		glViewport(0, 0, screenWidth, screenHeight);
+		printf("Viewport: %d, %d\n", screenWidth, screenHeight);
 		m_screen = std::make_unique<screen::FrameBuffer>();
 		m_screen->setScreen(0.0f, float(screenWidth), 0.0f, float(screenHeight));
 
@@ -211,27 +209,45 @@ namespace window {
 		Timer frameTimer;
 		std::array<float,10> deltaTimes;
 		size_t frames = 0;
-		auto getDt = [&]() {
+		auto getDt1 = [&]() {
 			auto dt = frameTimer.getDeltaTime();
 			deltaTimes[frames % deltaTimes.size()] = dt;
 			if(frames < deltaTimes.size()) {
 				return deltaTimes[frames];
 			}
 			float dts=0;
-			for(auto dt : deltaTimes){
-				dts += dt;
+			for(auto dt : deltaTimes) {
+				if (dt < 0.10f) {
+					dts += dt;
+				} else {
+					dts += 0.10f;
+				}
 			}
-			return dts / deltaTimes.size();
+			auto delta = dts / deltaTimes.size();
+
+			return delta;
 		};
 
-		while(shouldClose() == false) {
+		auto getDt = [&]() {
+			float dt = frameTimer.getDeltaTime();
+			if (dt > 0.2f) {
+				dt = 0.2f;
+			}
+			return dt;
+		};
+
+		bool running = true;
+		while(shouldClose() == false && running) {
 			// Render
 			glfwMakeContextCurrent(m_window);
+			int screenWidth, screenHeight;
+			glfwGetFramebufferSize(m_window, &screenWidth, &screenHeight);
+			glViewport(0, 0, screenWidth, screenHeight);
 			render(*this->m_screen);
 			glfwSwapBuffers(m_window);
 
 			// Update
-			updateGame(*this, getDt());
+			running = updateGame(*this, getDt1());
 
 			// Save screenshot
 			if(m_screenshotFileName.length()>0){

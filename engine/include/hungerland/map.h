@@ -130,7 +130,7 @@ namespace map {
 
 		typedef std::vector< std::vector<glm::vec3> > MapCollision;
 
-		MapCollision checkCollision(const glm::vec3 position, glm::vec3 halfSize) const;
+		MapCollision checkCollision(const std::string& layerName, const glm::vec3 position, glm::vec3 halfSize) const;
 
 
 	public:
@@ -215,10 +215,10 @@ namespace map {
 	/// \param f
 	/// \param mapFile
 	///
-	template<typename MapType, typename Ctx>
-	std::shared_ptr<MapType> load(Ctx* ctx, const std::string& mapFile, bool repeat) {
-		return std::make_shared<MapType>(mapFile, [ctx,repeat](const std::string& imageFile) {
-			auto texture = ctx->loadTexture(imageFile);
+	template<typename MapType, typename LoadTextureFunc>
+	std::shared_ptr<MapType> load(LoadTextureFunc loadTexture, const std::string& mapFile, bool repeat) {
+		return std::make_shared<MapType>(mapFile, [loadTexture,repeat](const std::string& imageFile) {
+			auto texture = loadTexture(imageFile);
 			texture->setRepeat(repeat);
 			return texture;
 		});
@@ -230,7 +230,7 @@ namespace map {
 	/// \param projectionMatrix
 	/// \param cameraDelta
 	///
-	void draw(const Map& map, const std::vector<float>& projectionMatrix, const glm::vec2& cameraDelta);
+	void draw(const Map& map, const glm::mat4& projectionMatrix, const glm::vec2& cameraDelta);
 
 }
 }
