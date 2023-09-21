@@ -39,6 +39,7 @@
 ///
 /// \ingroup platformer
 ///
+#include "hungerland/window.h"
 namespace platformer {
 
 ///=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -136,14 +137,15 @@ namespace  platformer {
 namespace env {
 	template<typename MapCollision, typename Map, typename Body, typename PenetrateFunc, typename ReactFunc>
 	auto integrateBody(const Body& oldBody, const Map& map, PenetrateFunc isPenetrating, ReactFunc reactFunc, glm::vec3 F, glm::vec3 I, float dt) {
-		assert(false == isPenetrating(map.checkCollision(oldBody.position,glm::vec3(0.5f))));
+		auto collistionLayer = "PlatformTiles";
+		assert(false == isPenetrating(map.checkCollision(collistionLayer,oldBody.position,glm::vec3(0.5f))));
 
 		auto stepEuler = [&](Body body, float dt) {
 			// Integrate velocity from forces and position from velocity:
 			auto i = dt * F;
 			body.velocity += I + i;
 			body.position += body.velocity * dt;
-			return std::make_tuple(body, map.checkCollision(body.position,glm::vec3(0.5f)));
+			return std::make_tuple(body, map.checkCollision(collistionLayer,body.position,glm::vec3(0.5f)));
 		};
 
 		auto b = oldBody;
@@ -173,9 +175,9 @@ namespace env {
 					break;
 				}
 			}
-			assert(false == isPenetrating(map.checkCollision(b.position,glm::vec3(0.5f))));
+			assert(false == isPenetrating(map.checkCollision(collistionLayer,b.position,glm::vec3(0.5f))));
 			b = reactFunc(b, resBody, resCollision);
-			assert(false == isPenetrating(map.checkCollision(b.position,glm::vec3(0.5f))));
+			assert(false == isPenetrating(map.checkCollision(collistionLayer,b.position,glm::vec3(0.5f))));
 			if(usedTime<=TIME_TOL) {
 				break;
 			}
@@ -512,8 +514,51 @@ namespace  env {
 	template<typename World, typename Ctx, typename Config>
 	void loadScene(Ctx* ctx, World& world, size_t index, const Config& cfg) {
 		using namespace hungerland;
+		typedef std::shared_ptr<hungerland::texture::Texture> TexturePtr;
+		std::map<std::string, TexturePtr> textureCache;
+		auto loadTexture = [&textureCache](const std::string& filename, bool black=false) -> TexturePtr{
+			auto hash = filename + (black ? "_black" : "");
+			auto it = textureCache.find(hash);
+			if (it != textureCache.end()) {
+				return it->second;
+			}
+
+			hungerland::window::Image image(filename);
+			assert(image.data != 0);
+			std::vector<uint8_t> imageData;
+			imageData.resize(image.size.y * image.size.x * 4);
+			bool hasTransparent = false;
+			for (auto y = 0; y < image.size.y; ++y) {
+				for (auto x = 0; x < image.size.x; ++x) {
+					auto id = 4 * unsigned(y * image.size.x + x);
+					auto is = image.bpp * unsigned(y * image.size.x + x);
+					if (black) {
+						imageData[id + 0] = 0;
+						imageData[id + 1] = 0;
+						imageData[id + 2] = 0;
+						imageData[id + 3] = 80;
+					}
+					else {
+						imageData[id + 0] = image.data[is + 0];
+						imageData[id + 1] = image.data[is + 1];
+						imageData[id + 2] = image.data[is + 2];
+						imageData[id + 3] = 0xff;
+					}
+					if (image.data[is + 0] > 0xf0 && image.data[is + 1] <= 0x0f && image.data[is + 2] > 0xf0) {
+						hasTransparent = true;
+						imageData[id + 3] = 0x00;
+					}
+				}
+			}
+			printf("Loaded image: %s %s transparent pixels\n", filename.c_str(), hasTransparent ? "has" : "has not");
+			//auto texture = std::make_shared<hungerland::texture::Texture>(width, height, 4, &data[0]);
+			TexturePtr texture = std::make_shared<hungerland::texture::Texture>(image.size.x, image.size.y, 4, &imageData[0]);
+			textureCache[hash] = texture;
+			return texture;
+		};
+
 		// Create map layers by map and tileset.
-		world.tileMap = hungerland::map::load<hungerland::map::Map>(ctx, cfg.mapFiles[index], false);
+		world.tileMap = hungerland::map::load<hungerland::map::Map>(loadTexture, cfg.mapFiles[index], false);
 
 		// Load object textures
 		for(const auto& filename : cfg.characterTextureFiles) {
@@ -621,7 +666,7 @@ namespace view {
 		// Aseta origo ruudun vasempaan alareunaan:
 		const auto SIZE_X = float(SCREEN_SIZE_X/2);
 		const auto SIZE_Y = float(SCREEN_SIZE_Y/2);
-		screen.setScreen(-SIZE_X, SIZE_X , SIZE_Y, -SIZE_Y);
+		//screen.setScreen( (-SIZE_X, SIZE_X , SIZE_Y, -SIZE_Y);
 		screen.clear(0, 0, 0, 0);
 		auto projection = glm::ortho(-SIZE_X, SIZE_X , SIZE_Y, -SIZE_Y);
 
@@ -636,7 +681,7 @@ namespace view {
 			auto mat = glm::translate(glm::mat4(1), mapScreenPos);
 			matProj = glm::translate(matProj, 0.5f * scale);
 			auto cameraDelta = cameraPosition * scale;
-			hungerland::map::draw(mapLayers, to_vec(matProj*glm::inverse(mat)), cameraDelta);
+			hungerland::map::draw(mapLayers, matProj*glm::inverse(mat), cameraDelta);
 			return matProj;
 		};
 

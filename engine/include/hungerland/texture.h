@@ -27,42 +27,42 @@
 namespace hungerland {
 namespace texture {
 
-	///
-	/// \brief The Texture class
-	///
-	/// @ingroup hungerland::texture
-	/// @author Mikko Romppainen (kajakbros@gmail.com)
-	///
-	class Texture {
-	public:
-		typedef std::shared_ptr<Texture> Ref;
-		Texture(unsigned width, unsigned height, unsigned nrChannels);
-		Texture(unsigned width, unsigned height, unsigned nrChannels, const uint8_t* data);
-		Texture(unsigned width, unsigned height, unsigned nrChannels, const float* data);
-		Texture(unsigned width, unsigned height, bool isDepthTexture);
-		~Texture();
+    ///
+    /// \brief The Texture class
+    ///
+    /// @ingroup hungerland::texture
+    /// @author Mikko Romppainen (kajakbros@gmail.com)
+    ///
+    class Texture {
+    public:
+        typedef std::shared_ptr<Texture> Ref;
+        Texture(/*unsigned width, unsigned height, unsigned nrChannels*/);
+        Texture(unsigned width, unsigned height, unsigned nrChannels, const uint8_t* data);
+        Texture(unsigned width, unsigned height, unsigned nrChannels, const float* data);
+        Texture(unsigned width, unsigned height, bool isDepthTexture);
+        ~Texture();
 
-		void setData(unsigned width, unsigned height, unsigned nrChannels, const float* data);
-		void setData(unsigned width, unsigned height, unsigned nrChannels, const uint8_t* data);
-		void setRepeat(bool repeat);
-		void setFiltering(bool filter);
+        void setData(unsigned width, unsigned height, unsigned nrChannels, const float* data);
+        void setData(unsigned width, unsigned height, unsigned nrChannels, const uint8_t* data);
+        void setRepeat(bool repeat);
+        void setFiltering(bool filter);
 
-		void bind(unsigned textureIndex);
+        void bind(unsigned textureIndex);
 
-		unsigned getId() const;
-		unsigned getWidth() const;
-		unsigned getHeight() const;
+        unsigned getId() const;
+        unsigned getWidth() const;
+        unsigned getHeight() const;
 
-	private:
-		unsigned	m_textureId;	// Texture id
-		unsigned	m_width;
-		unsigned	m_height;
-		unsigned	m_nrChannels;
+    private:
+        unsigned	m_textureId;	// Texture id
+        unsigned	m_width;
+        unsigned	m_height;
+        unsigned	m_nrChannels;
 
-		// Copy not allowed
-		Texture() = delete;
-		Texture(const Texture&) = delete;
-		Texture& operator=(const Texture&) = delete;
-	};
+        // Copy not allowed
+        //Texture() = delete;
+        Texture(const Texture&) = delete;
+        Texture& operator=(const Texture&) = delete;
+    };
 }
 }

@@ -38,13 +38,123 @@
 
 namespace hungerland {
 namespace map {
+
+	template<typename Layer>
+	auto getLayerPixels(const Layer& layer, int firstGID, int tileCount){
+		const auto& layerSize =  layer.getSize();
+		const auto& layerTiles = layer.getTiles();
+		std::vector<float> layerPixels;
+		bool tsUsed = false;
+		for(auto ly = 0u; ly < layerSize.y; ++ly) {
+			for(auto lx = 0u; lx < layerSize.x; ++lx) {
+				int tileIndex = ly * layerSize.x + lx;
+				int layerTileID = layerTiles[tileIndex].ID;
+				//auto firstGID = tileSet.getFirstGID();
+				int lastGID = firstGID + tileCount - 1;
+				if(layerTileID >= firstGID && layerTileID <= lastGID) {
+					auto tileId = layerTileID - firstGID + 1;
+					// Red channel: making sure to index relative to the tileset
+					layerPixels.push_back(float(tileId));
+					// Green channel: tile flips are performed on the shader
+					layerPixels.push_back(float(layerTiles[tileIndex].flipFlags));
+					layerPixels.push_back(0);
+					layerPixels.push_back(0);
+					tsUsed = true;
+				} else {
+					// Pad with empty space
+					layerPixels.push_back(0);
+					layerPixels.push_back(0);
+					layerPixels.push_back(0);
+					layerPixels.push_back(0);
+				}
+			}
+		}
+		if(!tsUsed) layerPixels.clear();
+		return layerPixels;
+	}
+
+	/*auto getLayerPixels(const TileLayer& layer, int firstGID, int tileCount){
+		const auto& tileIds = layer.tileIds;
+		const auto& tileFlags = layer.tileFlags;
+		const auto& layerSize =  size2d_t{tileIds[0].size(),tileIds.size()};
+		std::vector<float> layerPixels;
+		layerPixels.resize(layerSize.x*layerSize.y*4);
+		bool tsUsed = false;
+
+		for(auto ly = 0u; ly < layerSize.y; ++ly) {
+			for(auto lx = 0u; lx < layerSize.x; ++lx) {
+				auto tileIndex = ly * layerSize.x + lx;
+				auto layerTileID = layerTiles[tileIndex].ID;
+
+
+				int i = ly * layer.tileIds[ly].size() + lx;
+				if(layerTileID >= firstGID && layerTileID <= (firstGID+tileCount)) {
+					// Red channel: making sure to index relative to the tileset
+					layerPixels[i+0] = float(layerTileID);
+					layerPixels[i+1] = float(layerTileFlags);
+					layerPixels[i+2] = 0.0f;
+					layerPixels[i+3] = 0.0f;
+					tsUsed = true;
+				} else {
+					// Pad with empty space
+					layerPixels[i+0] = 0.0f;
+					layerPixels[i+1] = 0.0f;
+					layerPixels[i+2] = 0.0f;
+					layerPixels[i+3] = 0.0f;
+				}
+			}
+		}
+
+		if(!tsUsed) layerPixels.clear();
+		return layerPixels;
+	}*/
+
+	template<typename Subsets, typename Layer, typename MapBounds, typename Tilesets, typename TilesetTextures>
+	auto createLayerSubsets(Subsets& subsets, const Layer& layer, const MapBounds& bounds, const Tilesets& tilesets, const TilesetTextures& tilesetTextures) {
+		subsets.clear();
+		for(auto tilesetId = 0u; tilesetId < tilesets.size(); ++tilesetId) {
+			// Check each tile ID to see if it falls in the current tile set
+			const auto& ts = tilesets[tilesetId];
+			TileSetSubset subset;
+			assert(tilesetId < tilesetTextures.size());
+			subset.mesh			= quad::createImage(bounds.left, bounds.top, bounds.width, bounds.height);
+			subset.used			= false;
+			subset.opacity		= layer.getOpacity();
+			subset.offset.x		= layer.getOffset().x;
+			subset.offset.y		= layer.getOffset().y;
+			subset.tileMap		= tilesetTextures[tilesetId];
+			subset.tileSize.x	= ts.getTileSize().x;
+			subset.tileSize.y	= ts.getTileSize().y;
+			subset.tilesetSize.x= ts.getColumnCount();
+			subset.tilesetSize.y= ts.getTileCount()/ts.getColumnCount();
+			subsets.push_back(subset);
+		}
+	};
+
+	template<typename Subset, typename Size2d, typename Pixels>
+	void setColorLookup(Subset& subset, const Size2d layerSize, const Pixels& layerPixels) {
+		if(layerPixels.size()>0) {
+			subset.used = true;
+			if(subset.colorLookup == 0) {
+				subset.colorLookup	= std::make_shared<texture::Texture>(layerSize.x, layerSize.y, 4, &layerPixels[0]);
+			} else {
+				subset.colorLookup->setData(layerSize.x, layerSize.y, 4, &layerPixels[0]);
+			}
+		} else {
+			subset.used = false;
+			subset.colorLookup	= 0;
+		}
+	}
+
+
 	/// TileLayer
-	TileLayer::TileLayer(const tmx::Map& map, size_t layerIndex, const std::vector<std::shared_ptr<texture::Texture> >& tilesetTextures) {
+	TileLayer::TileLayer(const tmx::Map& map, size_t layerIndex, const Textures& tilesetTextures) {
 		const tmx::TileLayer& layer = *dynamic_cast<tmx::TileLayer*>(map.getLayers()[layerIndex].get());
 		util::INFO("Creating map layer: index="+std::to_string(layerIndex)+", type=TileLayer, Name=\"" + layer.getName() + "\"");
 		const auto& layerSize =  layer.getSize();
 		const auto& layerTiles = layer.getTiles();
-		const auto& tilesets = map.getTilesets();
+		textures = tilesetTextures;
+
 		tileIds = util::gridNM(layer.getSize().x,layer.getSize().y, 0);
 		tileFlags = util::gridNM(layer.getSize().x,layer.getSize().y, 0);
 		// Create objects from non zero tile ids:
@@ -58,7 +168,7 @@ namespace map {
 					//objects.push_back({lx,layerSize.y-ly-1});
 					tileIds[ly][lx] = layerTile.ID;
 					tileFlags[ly][lx] = layerTile.flipFlags;
-					objects.push_back({lx,ly});
+					objects.push_back({{lx,ly}, layerTile.ID});
 				}
 			}
 		}
@@ -67,64 +177,30 @@ namespace map {
 			util::INFO("x=" + std::to_string(o.x) + "y=" + std::to_string(o.y));
 		}*/
 
-		std::vector<float> layerPixels;
-		bool tsUsed = false;
-		for(auto tilesetId = 0u; tilesetId < tilesets.size(); ++tilesetId) {
-			// Check each tile ID to see if it falls in the current tile set
-			const auto& tileSet = tilesets[tilesetId];
-			const auto& layerTiles = layer.getTiles();
-			std::vector<float> layerPixels;
-			bool tsUsed = false;
-			for(auto ly = 0u; ly < layerSize.y; ++ly) {
-				for(auto lx = 0u; lx < layerSize.x; ++lx) {
-					auto tileIndex = ly * layerSize.x + lx;
-					auto layerTileID = layerTiles[tileIndex].ID;
-					auto firstGID = tileSet.getFirstGID();
-					auto lastGID = firstGID + tileSet.getTileCount() - 1;
-					if(layerTileID >= firstGID && layerTileID <= lastGID) {
-						auto tileId = layerTileID - firstGID + 1;
-						// Red channel: making sure to index relative to the tileset
-						layerPixels.push_back(float(tileId));
-						// Green channel: tile flips are performed on the shader
-						layerPixels.push_back(float(layerTiles[tileIndex].flipFlags));
-						layerPixels.push_back(0);
-						layerPixels.push_back(0);
-						tsUsed = true;
-					} else {
-						// Pad with empty space
-						layerPixels.push_back(0);
-						layerPixels.push_back(0);
-						layerPixels.push_back(0);
-						layerPixels.push_back(0);
-					}
-				}
-			}
-
-			//if we have some data for this tile set, create the resources
-			if(tsUsed) {
-				auto bounds = map.getBounds();
-				assert(tilesetId < tilesetTextures.size());
-				TileSetSubset subset;
-				subset.used = true;
-				subset.opacity = layer.getOpacity();
-				subset.offset.x = layer.getOffset().x;
-				subset.offset.y = layer.getOffset().y;
-				subset.tileMap = tilesetTextures[tilesetId];
-				subset.colorLookup = std::make_shared<texture::Texture>(layerSize.x, layerSize.y, 4, &layerPixels[0]);
-				subset.tileSize.x =  tileSet.getTileSize().x;
-				subset.tileSize.y = tileSet.getTileSize().y;
-				subset.tilesetSize.x = tileSet.getColumnCount();
-				assert(tileSet.getTileCount() % tileSet.getColumnCount() == 0);
-				subset.tilesetSize.y = tileSet.getTileCount()/tileSet.getColumnCount();
-
-				subset.mesh = quad::createImage(bounds.left, bounds.top, bounds.width, bounds.height);
-				subsets.push_back(subset);
-			} else {
-				subsets.push_back(TileSetSubset()); // Un used subset
-			}
+		createLayerSubsets(subsets, layer, map.getBounds(), map.getTilesets(), textures);
+		for(auto layerId = 0u; layerId < subsets.size(); ++layerId) {
+			auto ts = map.getTilesets()[layerId];
+			std::vector<float> layerPixels = getLayerPixels(layer, ts.getFirstGID(), ts.getTileCount());
+			setColorLookup(subsets[layerId], layer.getSize(), layerPixels);
 		}
 	}
 
+	void TileLayer::setObjects(const Objects& objs) {
+		objects = objs;
+		for(auto& obj : objects) {
+			auto x = obj.first.x;
+			auto y = obj.first.y;
+			auto tileId = int(obj.second);
+			tileIds[y][x] = tileId;
+			//const auto& layerTiles = layer.getTiles()[;
+		}
+		for(auto layerIndex = 0u; layerIndex < subsets.size(); ++layerIndex) {
+/*			const tmx::TileLayer& layer = *dynamic_cast<tmx::TileLayer*>(map.getLayers()[layerIndex].get());
+			auto ts = map.getTilesets()[layerIndex];
+			std::vector<float> layerPixels = getLayerPixels(layer, ts.getFirstGID(), ts.getTileCount());
+			setColorLookup(subsets[layerIndex], layer.getSize(), layerPixels);*/
+		}
+	}
 
 	/// ImageLayer
 	ImageLayer::ImageLayer(const tmx::Map& map, size_t layerIndex, const std::vector< std::shared_ptr<texture::Texture> >& imageTextures) {
@@ -276,7 +352,7 @@ namespace map {
 			int2d_t pos = {int(position.x+0.5f),int(position.y+0.5f)};
 			int mx = mapDir.x + pos.x;
 			int my = mapDir.y + pos.y;
-			
+
 			if(getTileId(layer, mx, my) > 0) {
 				auto o1 = aabb::createAABB(glm::vec3(position.x, position.y, 0.0f), halfSize);
 				auto o2 = aabb::createAABB(glm::vec3(float(mx), float(my), 0.0f), glm::vec3(0.5f));
@@ -353,7 +429,7 @@ namespace map {
 		return it->second;
 	}
 
-	const int Map::getTileId(size_t layerId, size_t x, size_t y) const {
+	int Map::getTileId(size_t layerId, size_t x, size_t y) const {
 		if(x < 0.0f || y < 0.0f) {
 			return -1;
 		}
@@ -364,6 +440,11 @@ namespace map {
 			return -1;
 		}
 		return layer->tileIds[y][x];
+	}
+
+
+	const Objects& Map::getLayerObjects(size_t layerId) const {
+		return m_tileLayers[layerId]->objects;
 	}
 
 	template<typename Subset>

@@ -158,7 +158,6 @@ namespace quad {
 		return mesh::create(POSITIONS,TEXTURE_COORDS);
 	}
 
-
 	std::shared_ptr<mesh::Mesh> createImage(float originX, float originY, float sizeX, float sizeY, float texScaleX, float texScaleY){
 		std::vector<float> POSITIONS = {
 			originX,			originY,
@@ -176,13 +175,10 @@ namespace quad {
 	}
 
 	std::shared_ptr<mesh::Mesh> createScreenSizeQuad(float left, float right, float bottom, float top) {
-		const float sx = right-left;
-		const float sy = top-bottom;
-
-		const auto ssqTopLeft        = glm::vec2(-sx*0.5f, -sy*0.5f);
-		const auto ssqTopRight       = glm::vec2(-sx*0.5f,  sy*0.5f);
-		const auto ssqBottomLeft     = glm::vec2( sx*0.5f, -sy*0.5f);
-		const auto ssqBottomRight    = glm::vec2( sx*0.5f,  sy*0.5f);
+		const auto ssqTopLeft        = glm::vec2(left,  top);
+		const auto ssqTopRight       = glm::vec2(right, top);
+		const auto ssqBottomLeft     = glm::vec2(left,  bottom);
+		const auto ssqBottomRight    = glm::vec2(right, bottom);
 		const std::vector<glm::vec2> POSITIONS({
 			ssqBottomLeft,
 			ssqBottomRight,
@@ -192,11 +188,11 @@ namespace quad {
 			ssqTopLeft
 		});
 		static const std::vector<glm::vec2> TEXTURE_COORDS({
-			glm::vec2(1,0),
+			glm::vec2(0,1),
 			glm::vec2(1,1),
-			glm::vec2(0,1),
 			glm::vec2(1,0),
 			glm::vec2(0,1),
+			glm::vec2(1,0),
 			glm::vec2(0,0)
 		});
 		return mesh::create(POSITIONS, TEXTURE_COORDS);

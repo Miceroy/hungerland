@@ -56,23 +56,23 @@ namespace screen {
 		});
 	}
 
-	glm::mat4 Screen::setScreen(float left, float right, float bottom, float top) {
-		if(m_left==left && m_right==right && m_bottom==bottom && m_top==top){
+	glm::mat4 Screen::setScreen(const Rect& rc) {
+		if(m_left==rc.left && m_right==rc.right && m_bottom==rc.bottom && m_top==rc.top){
 			return m_projection;
 		}
 		const float m_near = -1.0f;
 		const float m_far = 1.0f;
-		m_left = left;
-		m_right = right;
-		m_bottom = bottom;
-		m_top = top;
+		m_left = rc.left;
+		m_right = rc.right;
+		m_bottom = rc.bottom;
+		m_top = rc.top;
 		m_ssq = quad::createScreenSizeQuad(m_left, m_right, m_bottom, m_top);
 		m_projection = glm::ortho(m_left, m_right, m_bottom, m_top);
 
 		// Create FBOs
 		m_shadeFbo = std::make_unique<graphics::FrameBuffer>();
-		const int sx = int(right-left);
-		const int sy = int(top-bottom);
+		const int sx = int(m_right-m_left);
+		const int sy = int(m_top-m_bottom);
 		m_shadeFbo->addColorTexture(0, std::make_shared<texture::Texture>(std::abs(sx), std::abs(sy), false));
 		return m_projection;
 	}

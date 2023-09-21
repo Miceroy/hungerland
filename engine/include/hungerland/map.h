@@ -80,13 +80,18 @@ namespace map {
 		size2d_t repeat;
 	};
 
+	typedef std::vector< std::pair<size2d_t,size_t> > Objects;
+	typedef std::vector< std::shared_ptr<texture::Texture> > Textures;
+
 	class TileLayer {
 	public:
-		std::vector<size2d_t>	objects;
+		Textures textures;
+		Objects	objects;
 		std::vector<TileSetSubset>	subsets;
 		std::vector< std::vector<int> > tileIds;
 		std::vector< std::vector<int> > tileFlags;
-		TileLayer(const tmx::Map& map, size_t layerIndex, const std::vector< std::shared_ptr<texture::Texture> >& tilesetTextures);
+		TileLayer(const tmx::Map& map, size_t layerIndex, const Textures& tilesetTextures);
+		void setObjects(const Objects& objs);
 	};
 
 	class ImageLayer {
@@ -110,7 +115,8 @@ namespace map {
 		const size_t getNumLayers() const;
 		size_t getLayerIndex(const std::string& name) const;
 
-		const int getTileId(size_t layerId, size_t x, size_t y) const;
+		int getTileId(size_t layerId, size_t x, size_t y) const;
+		const Objects& getLayerObjects(size_t layerId) const;
 
 		const auto& getImageLayers() const {
 			return m_bgLayers;

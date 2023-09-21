@@ -16,6 +16,7 @@ option(GLFW_INSTALL "" OFF)
 add_subdirectory("ext/glfw-3.3.6")
 add_subdirectory("ext/glm-master")
 add_subdirectory("ext/tmxlite-master/tmxlite")
+add_subdirectory("ext/imgui-master")
 
 
 ##
@@ -26,7 +27,7 @@ file(GLOB_RECURSE ENGINE_INC_FILES "include/hungerland/*.h")
 file(GLOB_RECURSE ENGINE_SRC_FILES "src/*.cpp")
 file(GLOB_RECURSE ENGINE_INL_FILES "src/*.inl")
 add_library(hungerland ${ENGINE_INC_FILES} ${ENGINE_SRC_FILES} ${ENGINE_INL_FILES} ${GLAD_GL})
-target_link_libraries(hungerland PRIVATE glfw tmxlite PUBLIC glm)
+target_link_libraries(hungerland PRIVATE tmxlite PUBLIC glfw glm imgui)
 if(WIN32)
 	#target_compile_definitions(hungerland PUBLIC /wd4005)
 	#add_definitions("/wd4005")
@@ -45,5 +46,6 @@ set_target_properties(hungerland PROPERTIES FOLDER "hungerland")
 set_target_properties(tmxlite PROPERTIES FOLDER "hungerland")
 set_target_properties(uninstall PROPERTIES FOLDER "hungerland")
 set_target_properties(glfw PROPERTIES FOLDER "hungerland")
+set_target_properties(imgui PROPERTIES FOLDER "hungerland")
 set_target_properties(update_mappings PROPERTIES FOLDER "hungerland")
 

@@ -29,6 +29,9 @@
 #include <array>
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>		// Include glfw
+#include <imgui.h>		// Include glfw
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
 #include <chrono>			// for Timer
 
 // If you want to take screenshots, you must speciy following:
@@ -126,6 +129,22 @@ namespace window {
 		// Load GL functions using glad
 		gladLoadGL(glfwGetProcAddress);
 
+		// Setup Dear ImGui context
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+		// Setup Dear ImGui style
+		ImGui::StyleColorsDark();
+		//ImGui::StyleColorsLight();
+
+		// Setup Platform/Renderer backend
+		ImGui_ImplGlfw_InitForOpenGL(m_window, true);
+		ImGui_ImplOpenGL3_Init("#version 150");
+
+
 		glfwSetWindowUserPointer(m_window, this);
 		// Specify the key callback as c++-lambda to glfw
 		glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -148,11 +167,16 @@ namespace window {
 		glViewport(0, 0, screenWidth, screenHeight);
 		printf("Viewport: %d, %d\n", screenWidth, screenHeight);
 		m_screen = std::make_unique<screen::FrameBuffer>();
-		m_screen->setScreen(0.0f, float(screenWidth), 0.0f, float(screenHeight));
+		m_screen->setScreen(screen::Rect{0.0f, float(screenWidth), 0.0f, float(screenHeight)});
 
 	}
 
 	Window::~Window() {
+		// Cleanup
+		ImGui_ImplOpenGL3_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
+
 		// Destroy window
 		glfwDestroyWindow(m_window);
 		m_window = 0;
@@ -164,6 +188,7 @@ namespace window {
 
 	bool Window::shouldClose() {
 		glfwMakeContextCurrent(m_window);
+		m_inputMap.nextFrame();
 		glfwPollEvents();
 		return m_window == 0 || glfwWindowShouldClose(m_window);
 	}
@@ -198,6 +223,7 @@ namespace window {
 			return it->second;
 		}
 		Image image(filename);
+		if(image.data == 0) return 0;
 		return m_textures[filename] = std::make_shared<texture::Texture>(image.size.x, image.size.y, image.bpp, image.data);
 	}
 
@@ -205,7 +231,29 @@ namespace window {
 		g_engine->playSound(fileName);
 	}
 
-	int Window::run(UpdateFunc updateGame, RenderFunc render) {
+
+	void Window::render(RenderFunc renderFunc) {
+		glfwMakeContextCurrent(m_window);
+		int screenWidth, screenHeight;
+		glfwGetFramebufferSize(m_window, &screenWidth, &screenHeight);
+		glViewport(0, 0, screenWidth, screenHeight);
+
+		// Start the Dear ImGui frame
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		// User render
+		renderFunc(*this->m_screen);
+		
+		// Render ImGui
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+		glfwSwapBuffers(m_window);
+	}
+
+	int Window::run(UpdateFunc updateGame, RenderFunc renderFunc) {
 		Timer frameTimer;
 		std::array<float,10> deltaTimes;
 		size_t frames = 0;
@@ -239,12 +287,7 @@ namespace window {
 		bool running = true;
 		while(shouldClose() == false && running) {
 			// Render
-			glfwMakeContextCurrent(m_window);
-			int screenWidth, screenHeight;
-			glfwGetFramebufferSize(m_window, &screenWidth, &screenHeight);
-			glViewport(0, 0, screenWidth, screenHeight);
-			render(*this->m_screen);
-			glfwSwapBuffers(m_window);
+			render(renderFunc);
 
 			// Update
 			running = updateGame(*this, getDt1());
@@ -267,12 +310,10 @@ namespace window {
 				stbi_flip_vertically_on_write(false);
 				m_screenshotFileName = "";
 			}
-			m_inputMap.nextFrame();
 			// Poll other window events.
-			glfwPollEvents();
 			++frames;
 		}
-		return 0;
+		return shouldClose() ? 0 : -1;
 	};
 }
 }
