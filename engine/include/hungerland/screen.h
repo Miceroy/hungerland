@@ -75,7 +75,7 @@ namespace screen {
 		/// \param surfaceShader
 		/// \param globals
 		///
-		void drawSprite(const glm::mat4& transform, const texture::Texture* texture, const std::vector<shader::Constant>& constants={}, const std::string& surfaceShader="", const std::string& globals="");
+		void drawSprite(const glm::mat4& transform, const texture::Texture& texture, const std::vector<shader::Constant>& constants={}, const std::string& surfaceShader="", const std::string& globals="");
 
 		///
 		/// \brief drawScreenSizeQuad

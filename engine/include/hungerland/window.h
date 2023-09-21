@@ -39,6 +39,17 @@ namespace graphics {
 }
 
 namespace window {
+
+	struct Image {
+		Image(const std::string& fileName);
+
+		~Image();
+
+		int2d_t size = { 0, 0 };
+		int bpp = 0;
+		uint8_t* data = 0;
+	};
+
 	///
 	/// \brief The hungerland::window::UserInput class
 	///
@@ -93,7 +104,7 @@ namespace window {
 		/// \param size
 		/// \param title
 		///
-		explicit Window(size2d_t size, const std::string& title);
+		explicit Window(size2d_t size, const std::string& title, bool resizable = false);
 		~Window();
 
 		///

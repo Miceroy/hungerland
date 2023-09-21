@@ -29,49 +29,38 @@
 
 namespace hungerland {
 namespace texture {
-
-	/*Texture::Texture()
-		: m_textureId(0), m_width(0), m_height(0) {
-	}*/
-
-	Texture::Texture(int width, int height, int nrChannels, const GLubyte* data) : m_width(width), m_height(height) {
+	Texture::Texture(unsigned width, unsigned height, unsigned nrChannels)
+		: m_width(width), m_height(height), m_nrChannels(nrChannels) {
 		// Create texture
 		glGenTextures(1, &m_textureId);
 		checkGLError();
-		// Bind it for use
-		glBindTexture(GL_TEXTURE_2D, m_textureId);
-		checkGLError();
-		// set the texture data as RGBA
-		glTexImage2D(GL_TEXTURE_2D, 0, nrChannels == 3 ? GL_RGB : GL_RGBA, width, height, 0, nrChannels == 3 ? GL_RGB : GL_RGBA, GL_UNSIGNED_BYTE, data);
-		checkGLError();
-
-		setRepeat(false);
-		setFiltering(false);
 	}
 
-	Texture::Texture(int width, int height, int nrChannels, const float* data) : m_width(width), m_height(height) {
+	Texture::Texture(unsigned width, unsigned height, unsigned nrChannels, const GLubyte* data)
+		: m_width(width), m_height(height), m_nrChannels(nrChannels) {
 		// Create texture
 		glGenTextures(1, &m_textureId);
 		checkGLError();
-		// Bind it for use
-		glBindTexture(GL_TEXTURE_2D, m_textureId);
-		checkGLError();
-		// set the texture data as RGBA
-		glTexImage2D(GL_TEXTURE_2D, 0, nrChannels == 3 ? GL_RGB32F : GL_RGBA32F, width, height, 0, nrChannels == 3 ? GL_RGB : GL_RGBA, GL_FLOAT, data);
-		checkGLError();
-
-		setRepeat(false);
-		setFiltering(false);
+		setData(width, height, nrChannels,  data);
 	}
 
-	Texture::Texture(int width, int height, bool isDepthTexture) : m_width(width), m_height(height) {
+	Texture::Texture(unsigned width, unsigned height, unsigned nrChannels, const float* data)
+		: m_width(width), m_height(height), m_nrChannels(nrChannels) {
 		// Create texture
 		glGenTextures(1, &m_textureId);
 		checkGLError();
+		setData(width, height, nrChannels,  data);
+	}
+
+	Texture::Texture(unsigned width, unsigned height, bool isDepthTexture)
+		: m_width(width), m_height(height), m_nrChannels(4) {
+		// Create texture
+		glGenTextures(1, &m_textureId);
+		checkGLError();
+
 		// Bind it for use
 		glBindTexture(GL_TEXTURE_2D, m_textureId);
 		checkGLError();
-
 		if (isDepthTexture) {
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
 			checkGLError();
@@ -79,9 +68,9 @@ namespace texture {
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 			checkGLError();
 		}
-
 		setRepeat(false);
 		setFiltering(false);
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
 	Texture::~Texture() {
@@ -89,11 +78,34 @@ namespace texture {
 		//checkGLError();
 	}
 
-	void Texture::bind(unsigned textureIndex) {
-		glActiveTexture(GL_TEXTURE0 + textureIndex);
-		checkGLError();
+	void Texture::setData(unsigned width, unsigned height, unsigned nrChannels, const float* data) {
+		m_width = width;
+		m_height = height;
+		m_nrChannels = nrChannels;
+		// Bind it for use
 		glBindTexture(GL_TEXTURE_2D, m_textureId);
 		checkGLError();
+		// set the texture data as float RGBA
+		glTexImage2D(GL_TEXTURE_2D, 0, nrChannels == 3 ? GL_RGB32F : GL_RGBA32F, width, height, 0, nrChannels == 3 ? GL_RGB : GL_RGBA, GL_FLOAT, data);
+		checkGLError();
+		setRepeat(false);
+		setFiltering(false);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
+	void Texture::setData(unsigned width, unsigned height, unsigned nrChannels, const uint8_t* data) {
+		m_width = width;
+		m_height = height;
+		m_nrChannels = nrChannels;
+		// Bind it for use
+		glBindTexture(GL_TEXTURE_2D, m_textureId);
+		checkGLError();
+		// set the texture data as byte RGBA
+		glTexImage2D(GL_TEXTURE_2D, 0, nrChannels == 3 ? GL_RGB : GL_RGBA, width, height, 0, nrChannels == 3 ? GL_RGB : GL_RGBA, GL_UNSIGNED_BYTE, data);
+		checkGLError();
+		setRepeat(false);
+		setFiltering(false);
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
 	void Texture::setRepeat(bool repeat) {
@@ -112,6 +124,7 @@ namespace texture {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			checkGLError();
 		}
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
 	void Texture::setFiltering(bool filter) {
@@ -130,6 +143,14 @@ namespace texture {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 			checkGLError();
 		}
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
+	void Texture::bind(unsigned textureIndex) {
+		glActiveTexture(GL_TEXTURE0 + textureIndex);
+		checkGLError();
+		glBindTexture(GL_TEXTURE_2D, m_textureId);
+		checkGLError();
 	}
 
 	unsigned Texture::getId() const {

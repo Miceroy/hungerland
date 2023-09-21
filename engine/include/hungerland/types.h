@@ -28,6 +28,7 @@
 #include <vector>           // Inlude std::vector
 #include <memory>           // Inlude std::string
 #include <array>
+#include <math.h>
 
 namespace hungerland {
 

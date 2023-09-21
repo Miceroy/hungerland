@@ -26,10 +26,10 @@
 #include <hungerland/texture.h>
 #include <hungerland/mesh.h>
 #include <hungerland/engine.h>
-#include <glad/gl.h>
-#include <GLFW/glfw3.h>		// Include glfw
 #include <hungerland/util.h>
 #include <stdexcept>
+#include <glad/gl.h>
+#include <GLFW/glfw3.h>		// Include glfw
 
 // Miniaudio
 #define MINIAUDIO_IMPLEMENTATION

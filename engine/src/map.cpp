@@ -53,17 +53,19 @@ namespace map {
 				auto tileIndex = ly * layerSize.x + lx;
 				auto layerTile = layerTiles[tileIndex];
 				if(layerTile.ID > 0) {
-					tileIds[layerSize.y-ly-1][lx] = layerTile.ID;
-					tileFlags[tileIds.size()-ly-1][lx] = layerTile.flipFlags;
-					objects.push_back({lx,layerSize.y-ly-1});
+					//tileIds[layerSize.y-ly-1][lx] = layerTile.ID;
+					//tileFlags[tileIds.size()-ly-1][lx] = layerTile.flipFlags;
+					//objects.push_back({lx,layerSize.y-ly-1});
+					tileIds[ly][lx] = layerTile.ID;
+					tileFlags[ly][lx] = layerTile.flipFlags;
+					objects.push_back({lx,ly});
 				}
 			}
 		}
-		util::INFO("Layer index="+std::to_string(layerIndex)+" has "+std::to_string(objects.size())+" objects");
+		/*util::INFO("Layer index=" + std::to_string(layerIndex) + " has " + std::to_string(objects.size()) + " objects");
 		for(const auto& o : objects){
 			util::INFO("x=" + std::to_string(o.x) + "y=" + std::to_string(o.y));
-
-		}
+		}*/
 
 		std::vector<float> layerPixels;
 		bool tsUsed = false;
@@ -243,7 +245,7 @@ namespace map {
 	}
 
 
-	Map::MapCollision Map::checkCollision(const glm::vec3 position, glm::vec3 halfSize) const {
+	Map::MapCollision Map::checkCollision(const std::string& layerName, const glm::vec3 position, glm::vec3 halfSize) const {
 		// Ckeck map limits
 		auto mapSize = getMapSize();
 		mapSize.x -= 1;
@@ -268,12 +270,13 @@ namespace map {
 			colMap[p.y][p.x].z = getValue(colMap[p.y][p.x].z, val.z);
 		};
 
-		auto getOverlap = [this](int2d_t mapDir, glm::vec3 position, const glm::vec3& halfSize) {
-			auto layer = getLayerIndex("PlatformTiles");
+		auto getOverlap = [this,&layerName](int2d_t mapDir, glm::vec3 position, const glm::vec3& halfSize) {
+			auto layer = getLayerIndex(layerName);
 			//position -= glm::vec3(0.5, 0.5, 0.0);
 			int2d_t pos = {int(position.x+0.5f),int(position.y+0.5f)};
 			int mx = mapDir.x + pos.x;
 			int my = mapDir.y + pos.y;
+			
 			if(getTileId(layer, mx, my) > 0) {
 				auto o1 = aabb::createAABB(glm::vec3(position.x, position.y, 0.0f), halfSize);
 				auto o2 = aabb::createAABB(glm::vec3(float(mx), float(my), 0.0f), glm::vec3(0.5f));
@@ -321,9 +324,9 @@ namespace map {
 		}
 
 		// Top row
-		set({0,2}, getOverlap({-1, 1}, position, halfSize));
-		set({1,2}, getOverlap({ 0, 1}, position, halfSize));
-		set({2,2}, getOverlap({ 1, 1}, position, halfSize));
+		set({0,0}, getOverlap({-1, -1}, position, halfSize));
+		set({1,0}, getOverlap({ 0, -1}, position, halfSize));
+		set({2,0}, getOverlap({ 1, -1}, position, halfSize));
 
 		// Middle row
 		set({0,1}, getOverlap({-1, 0}, position, halfSize));
@@ -331,9 +334,9 @@ namespace map {
 		set({2,1}, getOverlap({ 1, 0}, position, halfSize));
 
 		// Bottom row
-		set({0,0}, getOverlap({-1,-1}, position, halfSize));
-		set({1,0}, getOverlap({ 0,-1}, position, halfSize));
-		set({2,0}, getOverlap({ 1,-1}, position, halfSize));
+		set({0,2}, getOverlap({-1, 1}, position, halfSize));
+		set({1,2}, getOverlap({ 0, 1}, position, halfSize));
+		set({2,2}, getOverlap({ 1, 1}, position, halfSize));
 
 		return colMap;
 	}
@@ -364,7 +367,7 @@ namespace map {
 	}
 
 	template<typename Subset>
-	void applyLayerSubset(const Subset& subset, shader::ShaderPass shader, const std::vector<float>& matProjection, const glm::vec2& cameraDelta) {
+	void applyLayerSubset(const Subset& subset, shader::ShaderPass shader, const glm::mat4& matProjection, const glm::vec2& cameraDelta) {
 		assert(subset.used);
 
 		float paralX = 0;
@@ -384,13 +387,13 @@ namespace map {
 			paralY = subset.parallaxFactor.y * cameraDelta.y;
 		}
 		// Set map properties
-		shader.setUniformm("P",			&matProjection[0], false);
+		shader.setUniformm("P",			&matProjection[0][0], false);
 		shader.setUniform( "offset",	float(subset.offset.x), float(subset.offset.y));
 		shader.setUniform( "opacity",	subset.opacity);
 		shader.setUniform( "parallax",	-paralX, paralY);
 	}
 
-	void draw(const ImageLayer& layer, shader::ShaderPass shader, const std::vector<float>& matProjection, const glm::vec2& cameraDelta) {
+	void draw(const ImageLayer& layer, shader::ShaderPass shader, const glm::mat4& matProjection, const glm::vec2& cameraDelta) {
 		auto& subset = layer.subset;
 		if(subset.used) {
 			applyLayerSubset(subset, shader, matProjection, cameraDelta);
@@ -402,7 +405,7 @@ namespace map {
 		}
 	}
 
-	void draw(const TileLayer& layer, shader::ShaderPass shader, const std::vector<float>& matProjection, const glm::vec2& cameraDelta) {
+	void draw(const TileLayer& layer, shader::ShaderPass shader, const glm::mat4& matProjection, const glm::vec2& cameraDelta) {
 		for(const auto& subset : layer.subsets)	{
 			if(subset.used) {
 				applyLayerSubset(subset, shader, matProjection, cameraDelta);
@@ -429,7 +432,7 @@ namespace map {
 		return false;
 	}
 
-	void draw(const Map& map, const std::vector<float>& matProjection, const glm::vec2& cameraDelta) {
+	void draw(const Map& map, const glm::mat4& matProjection, const glm::vec2& cameraDelta) {
 		// Clear screen:
 		auto clearColor = map.getClearColor();
 		auto a = clearColor.a;

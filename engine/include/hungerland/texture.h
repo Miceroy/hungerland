@@ -36,14 +36,18 @@ namespace texture {
 	class Texture {
 	public:
 		typedef std::shared_ptr<Texture> Ref;
-		Texture(int width, int height, int nrChannels, const uint8_t* data);
-		Texture(int width, int height, int nrChannels, const float* data);
-		Texture(int width, int height, bool isDepthTexture);
+		Texture(unsigned width, unsigned height, unsigned nrChannels);
+		Texture(unsigned width, unsigned height, unsigned nrChannels, const uint8_t* data);
+		Texture(unsigned width, unsigned height, unsigned nrChannels, const float* data);
+		Texture(unsigned width, unsigned height, bool isDepthTexture);
 		~Texture();
 
-		void bind(unsigned textureIndex);
+		void setData(unsigned width, unsigned height, unsigned nrChannels, const float* data);
+		void setData(unsigned width, unsigned height, unsigned nrChannels, const uint8_t* data);
 		void setRepeat(bool repeat);
 		void setFiltering(bool filter);
+
+		void bind(unsigned textureIndex);
 
 		unsigned getId() const;
 		unsigned getWidth() const;
@@ -53,6 +57,7 @@ namespace texture {
 		unsigned	m_textureId;	// Texture id
 		unsigned	m_width;
 		unsigned	m_height;
+		unsigned	m_nrChannels;
 
 		// Copy not allowed
 		Texture() = delete;
